@@ -1,0 +1,243 @@
+@import "tailwindcss";
+
+/* Custom animations registered as Tailwind utilities via @theme */
+@theme {
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-fade-up: fadeInUp 0.8s ease forwards;
+  --animate-shimmer: shimmer 4s linear infinite;
+  --animate-pulse-dot: pulseDot 2s ease-in-out infinite;
+  --animate-glow: glow 2s ease-in-out infinite;
+}
+
+/* Glassmorphic custom classes */
+@layer components {
+  .glass {
+    @apply backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl text-white;
+  }
+
+  .glass-dark {
+    @apply backdrop-blur-xl bg-slate-900/55 border border-slate-700/45 rounded-2xl shadow-inner text-white;
+  }
+
+  .glass-card {
+    @apply backdrop-blur-xl bg-gradient-to-br from-sky-900/30 via-indigo-900/20 to-purple-900/20 border border-white/20 rounded-3xl shadow-2xl text-white;
+  }
+
+  .glass-input {
+    @apply backdrop-blur-sm bg-white/20 border border-white/30 rounded-xl px-4 py-2.5 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent transition duration-200;
+  }
+
+  .glass-button {
+    @apply backdrop-blur-md bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 border border-white/20 rounded-xl px-6 py-2.5 font-semibold text-white transition shadow-lg hover:shadow-xl cursor-pointer;
+  }
+
+  .glass-button-outline {
+    @apply backdrop-blur-sm bg-white/15 border border-white/30 rounded-xl px-6 py-2.5 font-semibold text-white hover:bg-white/25 transition shadow-lg cursor-pointer;
+  }
+}
+
+/* Optional: unify label color in dark cards */
+.not-specially-styled, .not-specially-styled * {
+  color: #e2e8f0;
+}
+
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-30px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+  }
+}
+
+/* Calendar Styles */
+.rbc-calendar {
+  background: transparent;
+  color: white;
+}
+
+.rbc-header {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 6px;
+  font-weight: 600;
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rbc-month-view,
+.rbc-time-view {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.rbc-month-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rbc-date-cell {
+  color: rgba(255, 255, 255, 0.8);
+  padding: 4px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rbc-date-cell > a {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.rbc-date-cell.rbc-off-range {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.rbc-date-cell.rbc-off-range > a {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.rbc-today {
+  background-color: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.rbc-event {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 2px;
+  margin: 1px 0;
+}
+
+.rbc-event.rbc-selected {
+  background: transparent;
+}
+
+.rbc-toolbar {
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+}
+
+.rbc-toolbar button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 8px;
+  padding: 8px 16px;
+  transition: all 0.2s ease;
+}
+
+.rbc-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.rbc-toolbar button.rbc-active {
+  background: rgba(168, 85, 247, 0.3);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: white;
+}
+
+.rbc-toolbar-label {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 20px;
+}
+
+.rbc-time-view .rbc-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rbc-time-content {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rbc-time-slot {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rbc-current-time-indicator {
+  background-color: rgba(6, 182, 212, 0.6);
+}
+
+.rbc-show-more {
+  color: rgba(6, 182, 212, 0.8);
+  background: rgba(6, 182, 212, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+}
+
+.rbc-show-more:hover {
+  background: rgba(6, 182, 212, 0.2);
+}
