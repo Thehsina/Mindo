@@ -25,6 +25,7 @@ return(
 <p className="text-2xl">{tasks.length}</p>
 </div>
 
+
 <div className="bg-white p-6 shadow rounded">
 <h3>Completed</h3>
 <p className="text-2xl text-green-500">{completed}</p>
