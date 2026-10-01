@@ -42,24 +42,24 @@ function SortableTaskItem({ task, onToggle }) {
 
   const getPriorityStyle = (priority) => {
     const p = (priority || "").toLowerCase();
-    if (p === "high") return "bg-red-500/20 text-red-200 border border-red-500/30 font-medium";
-    if (p === "medium") return "bg-amber-500/20 text-amber-200 border border-amber-500/30 font-medium";
-    if (p === "low") return "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 font-medium";
-    return "bg-white/10 text-white/70 border border-white/20";
+    if (p === "high") return "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 font-medium";
+    if (p === "medium") return "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium";
+    if (p === "low") return "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-medium";
+    return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium";
   };
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
     const d = new Date(timestamp);
-    return d.toLocaleDateString();
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`glass p-3 cursor-grab active:cursor-grabbing ${
-        isDragging ? "opacity-50" : ""
+      className={`border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-[#1a1a1e] rounded-2xl p-4 shadow-sm cursor-grab active:cursor-grabbing hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors ${
+        isDragging ? "opacity-50 ring-2 ring-indigo-500 shadow-md" : ""
       }`}
     >
       <div className="flex items-start gap-3">
@@ -67,33 +67,29 @@ function SortableTaskItem({ task, onToggle }) {
           type="checkbox"
           checked={task.completed}
           onChange={() => onToggle(task)}
-          className="w-4 h-4 accent-purple-500 cursor-pointer shrink-0 mt-0.5"
+          className="w-4 h-4 accent-indigo-600 rounded cursor-pointer shrink-0 mt-1"
           onClick={(e) => e.stopPropagation()}
         />
         <div
           {...attributes}
           {...listeners}
-          className="flex-1 min-w-0 cursor-grab active:cursor-grabbing"
+          className="flex-1 min-w-0"
         >
-          <h4 className={`font-medium text-sm ${
-            task.completed ? "line-through text-cyan-300/40" : "text-white"
+          <h4 className={`font-semibold text-sm ${
+            task.completed ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
           }`}>
             {task.title}
           </h4>
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityStyle(task.priority)}`}>
-              {task.priority}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md ${getPriorityStyle(task.priority)}`}>
+              {task.priority || "None"}
             </span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-500/30">
-              {task.category === "Work" && "💼"}
-              {task.category === "Personal" && "👤"}
-              {task.category === "Health" && "🏥"}
-              {task.category === "Shopping" && "🛒"}
-              {" " + task.category}
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium">
+              {task.category || "General"}
             </span>
             {task.dueDate && (
-              <span className="text-xs text-pink-300/70">
-                Due: {formatDate(task.dueDate)}
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium ml-auto">
+                {formatDate(task.dueDate)}
               </span>
             )}
           </div>
@@ -109,20 +105,23 @@ function TaskColumn({ id, title, tasks, onToggle }) {
   });
 
   return (
-    <div className="flex-1 min-w-0">
+    <div className="flex-1 min-w-[300px] max-w-[400px]">
       <div
         ref={setNodeRef}
-        className={`glass-card p-4 h-full transition-colors ${
-          isOver ? "bg-purple-500/20 border-purple-400/50" : ""
+        className={`bento-card h-full flex flex-col ${
+          isOver ? "ring-2 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10" : "bg-slate-50 dark:bg-[#121214]"
         }`}
       >
-        <h3 className="text-lg font-semibold mb-4 text-cyan-300 flex items-center gap-2">
-          {title === "To Do" && "📋"}
-          {title === "In Progress" && "⚡"}
-          {title === "Completed" && "✅"}
-          {title} ({tasks.length})
-        </h3>
-        <div className="space-y-3 min-h-[200px] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            {title}
+            <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs">
+              {tasks.length}
+            </span>
+          </h3>
+        </div>
+        
+        <div className="flex-1 space-y-3 overflow-y-auto min-h-[200px] pb-2 pr-1">
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map((task) => (
               <SortableTaskItem
@@ -133,7 +132,7 @@ function TaskColumn({ id, title, tasks, onToggle }) {
             ))}
           </SortableContext>
           {tasks.length === 0 && (
-            <div className="text-center text-cyan-300/40 py-8 text-sm">
+            <div className="h-24 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 dark:text-slate-500 text-sm font-medium">
               Drop tasks here
             </div>
           )}
@@ -146,17 +145,16 @@ function TaskColumn({ id, title, tasks, onToggle }) {
 export default function TaskBoard({ tasks: filteredTasks }) {
   const dispatch = useDispatch();
   const allTasks = useSelector((state) => state.tasks);
-  const tasks = filteredTasks || allTasks; // Use filtered tasks if provided, otherwise all tasks
+  const tasks = filteredTasks || allTasks; 
   const [activeId, setActiveId] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  // Organize tasks into columns based on status
   const todoTasks = tasks.filter(task => task.status === "todo");
   const inProgressTasks = tasks.filter(task => task.status === "in-progress");
   const completedTasks = tasks.filter(task => task.status === "completed");
@@ -183,7 +181,6 @@ export default function TaskBoard({ tasks: filteredTasks }) {
       return;
     }
 
-    // Determine the target column based on the over element
     let newStatus = activeTask.status;
 
     if (over.id === "todo-column") {
@@ -193,14 +190,12 @@ export default function TaskBoard({ tasks: filteredTasks }) {
     } else if (over.id === "completed-column") {
       newStatus = "completed";
     } else {
-      // Check if dropped on another task - use that task's column
       const overTask = tasks.find(task => task.id === over.id);
       if (overTask) {
         newStatus = overTask.status;
       }
     }
 
-    // Only update if status changed
     if (newStatus !== activeTask.status) {
       dispatch(updateTaskStatusFirestore(active.id, newStatus));
     }
@@ -211,14 +206,14 @@ export default function TaskBoard({ tasks: filteredTasks }) {
   const activeTask = activeId ? tasks.find(task => task.id === activeId) : null;
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full flex flex-col">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex gap-6 h-full items-start overflow-x-auto pb-4">
           <TaskColumn
             id="todo-column"
             title="To Do"
@@ -241,27 +236,20 @@ export default function TaskBoard({ tasks: filteredTasks }) {
 
         <DragOverlay>
           {activeTask ? (
-            <div className="glass p-3 rotate-3 opacity-90">
+            <div className="border border-indigo-500/50 bg-white dark:bg-[#1a1a1e] rounded-2xl p-4 shadow-xl rotate-3 scale-105 cursor-grabbing">
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   checked={activeTask.completed}
-                  className="w-4 h-4 accent-purple-500 shrink-0 mt-0.5"
+                  className="w-4 h-4 accent-indigo-600 rounded shrink-0 mt-1"
                   readOnly
                 />
                 <div className="flex-1 min-w-0">
-                  <h4 className={`font-medium text-sm ${
-                    activeTask.completed ? "line-through text-cyan-300/40" : "text-white"
+                  <h4 className={`font-semibold text-sm ${
+                    activeTask.completed ? "line-through text-slate-400" : "text-slate-900 dark:text-white"
                   }`}>
                     {activeTask.title}
                   </h4>
-                  {activeTask.description && (
-                    <p className={`text-xs mt-1 text-cyan-300/70 ${
-                      activeTask.completed ? "line-through" : ""
-                    }`}>
-                      {activeTask.description}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>

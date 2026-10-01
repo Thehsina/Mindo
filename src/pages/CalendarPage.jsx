@@ -4,11 +4,10 @@ import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import { toggleTaskFirestore } from "../redux/tasksSlice";
+import { CalendarDays, AlertCircle, Edit2, CheckCircle2, Circle, X } from "lucide-react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-// Setup the localizer for react-big-calendar
 const locales = {
   "en-US": enUS,
 };
@@ -21,37 +20,20 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-// Custom event component for tasks
 function TaskEvent({ event }) {
   const getPriorityStyle = (priority) => {
     const p = (priority || "").toLowerCase();
-    if (p === "high") return "bg-red-500/80 text-white border-red-400";
-    if (p === "medium") return "bg-amber-500/80 text-white border-amber-400";
-    if (p === "low") return "bg-emerald-500/80 text-white border-emerald-400";
-    return "bg-purple-500/80 text-white border-purple-400";
-  };
-
-  const getCategoryEmoji = (category) => {
-    switch (category) {
-      case "Work": return "💼";
-      case "Personal": return "👤";
-      case "Health": return "🏥";
-      case "Shopping": return "🛒";
-      default: return "📋";
-    }
+    if (p === "high") return "bg-rose-500 text-white border-rose-600";
+    if (p === "medium") return "bg-amber-500 text-white border-amber-600";
+    if (p === "low") return "bg-emerald-500 text-white border-emerald-600";
+    return "bg-indigo-500 text-white border-indigo-600";
   };
 
   return (
-    <div className={`glass p-1 rounded text-xs border ${getPriorityStyle(event.priority)}`}>
-      <div className="flex items-center gap-1">
-        <span>{getCategoryEmoji(event.category)}</span>
-        <span className="font-medium truncate">{event.title}</span>
+    <div className={`p-1 rounded text-xs border shadow-sm h-full ${getPriorityStyle(event.priority)}`}>
+      <div className="flex items-center gap-1 font-medium truncate">
+        {event.title}
       </div>
-      {event.description && (
-        <div className="text-xs opacity-90 truncate mt-0.5">
-          {event.description}
-        </div>
-      )}
     </div>
   );
 }
@@ -63,9 +45,8 @@ export default function CalendarPage() {
   const [view, setView] = useState("month");
   const [selectedTask, setSelectedTask] = useState(null);
 
-  // Convert tasks to calendar events
   const events = tasks
-    .filter(task => task.dueDate) // Only show tasks with due dates
+    .filter(task => task.dueDate)
     .map(task => ({
       id: task.id,
       title: task.title,
@@ -77,7 +58,7 @@ export default function CalendarPage() {
       description: task.description,
       status: task.status,
       completed: task.completed,
-      resource: task, // Store full task data
+      resource: task,
     }));
 
   const handleEventClick = (event) => {
@@ -105,36 +86,17 @@ export default function CalendarPage() {
     });
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "completed": return "text-emerald-400";
-      case "in-progress": return "text-amber-400";
-      case "todo": return "text-blue-400";
-      default: return "text-gray-400";
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case "completed": return "Completed";
-      case "in-progress": return "In Progress";
-      case "todo": return "To Do";
-      default: return "Unknown";
-    }
-  };
-
-  // Custom calendar styles to match glassmorphic theme
   const calendarStyle = {
-    height: "calc(100vh - 200px)",
+    height: "600px",
     background: "transparent",
   };
 
-  const eventStyleGetter = (event) => {
+  const eventStyleGetter = () => {
     return {
       style: {
         backgroundColor: "transparent",
         border: "none",
-        padding: 0,
+        padding: "2px",
       },
     };
   };
@@ -145,189 +107,190 @@ export default function CalendarPage() {
 
     return {
       style: {
-        backgroundColor: isToday ? "rgba(168, 85, 247, 0.1)" : "transparent",
-        border: isToday ? "1px solid rgba(168, 85, 247, 0.3)" : "none",
+        backgroundColor: isToday ? "rgba(99, 102, 241, 0.05)" : "transparent",
       },
+      className: isToday ? "border-indigo-200 dark:border-indigo-900/50" : "",
     };
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Calendar View</h1>
-          <p className="text-cyan-300/70">
-            View your tasks organized by due dates
-          </p>
-        </div>
-
-        <div className="glass-card p-6">
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            style={calendarStyle}
-            eventPropGetter={eventStyleGetter}
-            dayPropGetter={dayPropGetter}
-            components={{
-              event: TaskEvent,
-            }}
-            views={["month", "week", "day"]}
-            view={view}
-            onView={setView}
-            onSelectEvent={handleEventClick}
-            popup
-            selectable
-            className="custom-calendar"
-          />
-        </div>
-
-        {/* Task Details Modal */}
-        {selectedTask && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="glass-card max-w-md w-full p-6">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="text-xl font-bold text-white">{selectedTask.title}</h3>
-                <button
-                  onClick={() => setSelectedTask(null)}
-                  className="text-white/60 hover:text-white text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-
-              {selectedTask.description && (
-                <p className="text-cyan-300/80 mb-4">{selectedTask.description}</p>
-              )}
-
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-cyan-300/60">Priority:</span>
-                  <span className={`text-sm font-medium ${
-                    selectedTask.priority?.toLowerCase() === "high" ? "text-red-400" :
-                    selectedTask.priority?.toLowerCase() === "medium" ? "text-amber-400" :
-                    selectedTask.priority?.toLowerCase() === "low" ? "text-emerald-400" :
-                    "text-purple-400"
-                  }`}>
-                    {selectedTask.priority}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-cyan-300/60">Category:</span>
-                  <span className="text-sm text-white">
-                    {selectedTask.category === "Work" && "💼"}
-                    {selectedTask.category === "Personal" && "👤"}
-                    {selectedTask.category === "Health" && "🏥"}
-                    {selectedTask.category === "Shopping" && "🛒"}
-                    {selectedTask.category === "Other" && "📋"}
-                    {" " + selectedTask.category}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-cyan-300/60">Status:</span>
-                  <span className={`text-sm font-medium ${getStatusColor(selectedTask.status)}`}>
-                    {getStatusText(selectedTask.status)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-cyan-300/60">Due Date:</span>
-                  <span className="text-sm text-pink-400">
-                    {formatDate(selectedTask.dueDate)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleTaskToggle(selectedTask)}
-                  className={`flex-1 glass-button ${
-                    selectedTask.completed ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700"
-                  }`}
-                >
-                  {selectedTask.completed ? "✅ Mark Incomplete" : "✔️ Mark Complete"}
-                </button>
-                <button
-                  onClick={handleEditTask}
-                  className="flex-1 glass-button-outline"
-                >
-                  ✏️ Edit Task
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Legend */}
-        <div className="mt-6 glass-card p-4">
-          <h3 className="text-lg font-semibold text-white mb-3">Legend</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-500/80 rounded border border-red-400"></div>
-              <span className="text-sm text-white">High Priority</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-amber-500/80 rounded border border-amber-400"></div>
-              <span className="text-sm text-white">Medium Priority</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-emerald-500/80 rounded border border-emerald-400"></div>
-              <span className="text-sm text-white">Low Priority</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-purple-500/80 rounded border border-purple-400"></div>
-              <span className="text-sm text-white">Default Priority</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Tasks without due dates */}
-        {(() => {
-          const tasksWithoutDates = tasks.filter(task => !task.dueDate);
-          if (tasksWithoutDates.length === 0) return null;
-
-          return (
-            <div className="mt-6 glass-card p-4">
-              <h3 className="text-lg font-semibold text-white mb-3">
-                📝 Tasks without due dates ({tasksWithoutDates.length})
-              </h3>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {tasksWithoutDates.slice(0, 5).map(task => (
-                  <div key={task.id} className="flex items-center gap-3 p-2 glass rounded-lg">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => dispatch(toggleTaskFirestore(task))}
-                      className="w-4 h-4 accent-purple-500 cursor-pointer"
-                    />
-                    <span className={`flex-1 text-sm ${
-                      task.completed ? "line-through text-cyan-300/40" : "text-white"
-                    }`}>
-                      {task.title}
-                    </span>
-                    <span className="text-xs text-cyan-300/60">
-                      {task.category === "Work" && "💼"}
-                      {task.category === "Personal" && "👤"}
-                      {task.category === "Health" && "🏥"}
-                      {task.category === "Shopping" && "🛒"}
-                      {task.category === "Other" && "📋"}
-                    </span>
-                  </div>
-                ))}
-                {tasksWithoutDates.length > 5 && (
-                  <p className="text-xs text-cyan-300/60 text-center mt-2">
-                    ... and {tasksWithoutDates.length - 5} more tasks
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })()}
+    <div className="animate-fade-in-up pb-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+          <CalendarDays className="w-8 h-8 text-indigo-500" />
+          Calendar
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">View your tasks organized by due dates.</p>
       </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3">
+          <div className="bento-card p-4 md:p-6 shadow-sm">
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={calendarStyle}
+              eventPropGetter={eventStyleGetter}
+              dayPropGetter={dayPropGetter}
+              components={{
+                event: TaskEvent,
+              }}
+              views={["month", "week", "day"]}
+              view={view}
+              onView={setView}
+              onSelectEvent={handleEventClick}
+              popup
+              selectable
+            />
+          </div>
+        </div>
+
+        <div className="xl:col-span-1 space-y-6">
+          {/* Legend */}
+          <div className="bento-card">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Legend</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 bg-rose-500 rounded border border-rose-600"></div>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">High Priority</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 bg-amber-500 rounded border border-amber-600"></div>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Medium Priority</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 bg-emerald-500 rounded border border-emerald-600"></div>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Low Priority</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 bg-indigo-500 rounded border border-indigo-600"></div>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Default Priority</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tasks without due dates */}
+          {(() => {
+            const tasksWithoutDates = tasks.filter(task => !task.dueDate);
+            if (tasksWithoutDates.length === 0) return null;
+
+            return (
+              <div className="bento-card">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 flex items-center justify-between">
+                  No Due Date
+                  <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs">
+                    {tasksWithoutDates.length}
+                  </span>
+                </h3>
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                  {tasksWithoutDates.slice(0, 5).map(task => (
+                    <div key={task.id} className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => dispatch(toggleTaskFirestore(task))}
+                        className="w-4 h-4 accent-indigo-600 cursor-pointer shrink-0 mt-0.5 rounded"
+                      />
+                      <span className={`text-sm font-medium truncate ${
+                        task.completed ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"
+                      }`}>
+                        {task.title}
+                      </span>
+                    </div>
+                  ))}
+                  {tasksWithoutDates.length > 5 && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium pt-2 border-t border-slate-100 dark:border-slate-800/60 text-center">
+                      +{tasksWithoutDates.length - 5} more
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* Task Details Modal Overlay */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in-up">
+          <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-slate-800/60 rounded-3xl p-6 shadow-xl max-w-md w-full relative">
+            <button
+              onClick={() => setSelectedTask(null)}
+              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-8 mb-4">{selectedTask.title}</h3>
+
+            {selectedTask.description && (
+              <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 bg-slate-50 dark:bg-[#1a1a1e] p-3 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                {selectedTask.description}
+              </p>
+            )}
+
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/60">
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Priority</span>
+                <span className={`text-sm font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                  selectedTask.priority?.toLowerCase() === "high" ? "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400" :
+                  selectedTask.priority?.toLowerCase() === "medium" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" :
+                  selectedTask.priority?.toLowerCase() === "low" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" :
+                  "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400"
+                }`}>
+                  {selectedTask.priority || "None"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/60">
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Category</span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-[#1a1a1e] px-2 py-1 rounded-md">
+                  {selectedTask.category || "General"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/60">
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Status</span>
+                <span className={`text-sm font-medium flex items-center gap-1.5 ${
+                  selectedTask.completed ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
+                }`}>
+                  {selectedTask.completed ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                  {selectedTask.completed ? "Completed" : "Active"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Due Date</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {formatDate(selectedTask.dueDate)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleTaskToggle(selectedTask)}
+                className={`flex-1 flex items-center justify-center gap-2 font-medium rounded-xl px-4 py-3 transition-colors ${
+                  selectedTask.completed 
+                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-[#1a1a1e] dark:text-slate-300 dark:hover:bg-[#222226]" 
+                    : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                }`}
+              >
+                {selectedTask.completed ? "Mark Incomplete" : "Mark Complete"}
+              </button>
+              <button
+                onClick={handleEditTask}
+                className="btn-secondary"
+              >
+                <Edit2 className="w-4 h-4" /> Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

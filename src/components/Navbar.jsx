@@ -1,6 +1,7 @@
 // src/components/Navbar.jsx
 import { useNavigate, useLocation } from "react-router-dom";
-import { auth } from "../firebase";
+import { useState, useEffect } from "react";
+import { supabase, isSupabaseConfigured, getCurrentUser } from "../supabase";
 
 const navLinks = [
   { path: "/dashboard", label: "Dashboard" },
@@ -11,11 +12,36 @@ const navLinks = [
   { path: "/settings", label: "Settings" },
 ];
 
-export default function Navbar({ title = "Task Manager", showBack = false }) {
+export default function Navbar({ title = "Mindo", showBack = false }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [user, setUser] = useState(null);
 
-  const user = auth.currentUser;
+  useEffect(() => {
+    let active = true;
+
+    const loadUser = async () => {
+      if (!isSupabaseConfigured) {
+        const local = localStorage.getItem("tm.local_user");
+        if (!active) return;
+        setUser(local ? JSON.parse(local) : { id: "local-user", email: "local@example.com", user_metadata: { display_name: "Local User" } });
+        return;
+      }
+
+      const currentUser = await getCurrentUser();
+      if (active) setUser(currentUser);
+    };
+
+    loadUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const displayName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "User";
 
   return (
     <header className="glass fixed top-0 left-0 right-0 z-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-b border-white/20 shadow-2xl">
@@ -32,8 +58,8 @@ export default function Navbar({ title = "Task Manager", showBack = false }) {
           <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
             {title}
           </h1>
-          {user && user.displayName && (
-            <p className="text-xs text-white/60">{user.displayName}</p>
+          {user && (
+            <p className="text-xs text-white/60">{displayName}</p>
           )}
         </div>
       </div>
@@ -57,9 +83,9 @@ export default function Navbar({ title = "Task Manager", showBack = false }) {
             className="ml-2 flex items-center gap-2 px-3 py-1.5 glass-button-outline text-white/80 hover:text-white"
           >
             <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full flex items-center justify-center text-slate-900 font-bold text-xs">
-              {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+              {displayName.charAt(0).toUpperCase()}
             </div>
-            <span className="hidden sm:inline">{user.displayName || "User"}</span>
+            <span className="hidden sm:inline">{displayName}</span>
           </button>
         )}
       </nav>
