@@ -425,7 +425,12 @@ export default function DashboardPage() {
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               Today’s Tasks
             </h2>
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{todayTasks.length} items</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{todayTasks.length} items</span>
+              <Link to="/tasks" className="text-xs font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                View all <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
 
           <div className="space-y-2.5">
