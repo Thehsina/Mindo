@@ -22,6 +22,7 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { updateTaskStatusFirestore, toggleTaskFirestore } from "../redux/tasksSlice";
+import { formatDue } from "../utils/dateUtils";
 
 const DEFAULT_CATEGORIES = ["Work", "Personal", "Health", "Shopping"];
 
@@ -50,8 +51,7 @@ function SortableTaskItem({ task, onToggle }) {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    const d = new Date(timestamp);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return formatDue(timestamp);
   };
 
   return (

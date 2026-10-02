@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Send, Sparkles, X } from "lucide-react";
 import { buildDuplicateKey } from "../utils/brainDump";
 import { detectIntent, generateIntentResponse, generateCasualReply } from "../utils/mindoIntent";
 import { addNotification, addReminderRecord, createReminderRecord, parseReminderText } from "../utils/notifications";
+import { formatDue } from "../utils/dateUtils";
 
 export default function CommandCenterPage() {
   const dispatch = useDispatch();
@@ -385,7 +386,7 @@ export default function CommandCenterPage() {
                         {item.quantity ? item.quantity : null}
                         {item.quantity && item.bucketLabel ? " • " : ""}
                         {item.bucketLabel ? item.bucketLabel : null}
-                        {item.dueDate ? ` • ${new Date(item.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : null}
+                        {item.dueDate ? ` • ${formatDue(item.dueDate)}` : null}
                       </div>
                     )}
                   </div>

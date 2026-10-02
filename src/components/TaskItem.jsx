@@ -12,26 +12,7 @@ const priorityMeta = {
   None: { mark: "", color: "" },
 };
 
-const formatDue = (iso) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diff = Math.round((target - today) / (1000 * 60 * 60 * 24));
-
-  const dateLabel =
-    diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : d.toLocaleDateString();
-
-  const timeLabel = d.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return `${dateLabel} ${timeLabel}`;
-};
+import { formatDue } from "../utils/dateUtils";
 
 export default function TaskItem({ task, onEdit, onOpenInfo }) {
   const dispatch = useDispatch();

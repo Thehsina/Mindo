@@ -6,6 +6,7 @@ import { addItemFirestore, fetchGroceryFirestore } from "../redux/grocerySlice";
 import { CheckCircle2, Circle, AlertCircle, ListTodo, ArrowRight, Notebook, ShoppingCart, Settings, Sparkles, Send, Check, X } from "lucide-react";
 import { isSupabaseConfigured, getCurrentUser } from "../supabase";
 import { parseBrainDump, buildDuplicateKey } from "../utils/brainDump";
+import { formatDue } from "../utils/dateUtils";
 import NotificationCenter from "../components/NotificationCenter";
 
 export default function DashboardPage() {
@@ -69,11 +70,9 @@ export default function DashboardPage() {
     .filter((t) => (t.priority || "").toLowerCase() === "high")
     .sort((a, b) => new Date(a.remindAt || 0) - new Date(b.remindAt || 0));
 
-  const formatWhen = (iso) => {
+  const formatWhen = (iso, hasTime) => {
     if (!iso) return "—";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return formatDue(iso, hasTime) || "—";
   };
 
   const getGreeting = () => {
@@ -261,7 +260,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="animate-fade-in-up space-y-4">
+    <div className="animate-fade-in-up space-y-4 pb-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
@@ -337,7 +336,7 @@ export default function DashboardPage() {
                       {item.quantity ? item.quantity : null}
                       {item.quantity && item.bucketLabel ? " • " : ""}
                       {item.bucketLabel ? item.bucketLabel : null}
-                      {item.dueDate ? ` • ${new Date(item.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : null}
+                      {item.dueDate ? ` • ${formatDue(item.dueDate)}` : null}
                     </div>
                   )}
                 </div>
@@ -366,7 +365,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="bento-card p-4 bg-indigo-600 dark:bg-indigo-600 border-transparent text-white">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 bg-white/20 rounded-xl">
@@ -418,7 +417,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.7fr_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-4">
         <div className="bento-card p-4 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">

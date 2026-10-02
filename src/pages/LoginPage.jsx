@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase, isSupabaseConfigured } from "../supabase";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Sparkles, LogIn, UserPlus, ArrowRight } from "lucide-react";
@@ -72,6 +72,18 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({});
   const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      const localUser = localStorage.getItem("tm.local_user") || JSON.stringify({
+        id: "local-user",
+        email: "local@example.com",
+        user_metadata: { display_name: "Local User" }
+      });
+      localStorage.setItem("tm.local_user", localUser);
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const clearFieldError = (field) => {
     setErrors((prev) => ({ ...prev, [field]: "" }));

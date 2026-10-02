@@ -13,6 +13,8 @@ import FocusModeModal from "./FocusModeModal";
 import { InfoIcon } from "./Icons";
 import { Plus, Trash2 } from "lucide-react";
 
+import { formatDue, buildDueDate, parseTaskDate } from "../utils/dateUtils";
+
 const createEmptyDraft = () => ({
   id: "new",
   title: "",
@@ -31,23 +33,6 @@ const createEmptyDraft = () => ({
   locationName: "",
   completed: false,
 });
-
-const formatDue = (iso) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "Invalid date";
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
-
-  const dateLabel =
-    diffDays === 0 ? "Today" : diffDays === 1 ? "Tomorrow" : d.toLocaleDateString();
-  const timeLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  return `${dateLabel} ${timeLabel}`;
-};
 
 const validateTaskFields = ({
   title,
@@ -82,24 +67,8 @@ const validateTaskFields = ({
   return errors;
 };
 
-const buildDueDate = (dateEnabled, dueDate, timeEnabled, dueTime) => {
-  if (!dateEnabled || !dueDate) return null;
-  const d = new Date(`${dueDate}T${timeEnabled && dueTime ? dueTime : "00:00"}:00`);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
-};
-
 const taskToFormState = (task) => {
-  let dueDate = "";
-  let dueTime = "";
-
-  if (task.dueDate) {
-    const d = new Date(task.dueDate);
-    if (!Number.isNaN(d.getTime())) {
-      dueDate = d.toISOString().slice(0, 10);
-      dueTime = d.toTimeString().slice(0, 5);
-    }
-  }
+  const parsed = parseTaskDate(task.dueDate, task.timeEnabled ?? task.hasTime);
 
   let locationType = task.locationType || "none";
   if (!task.locationType && task.locationReminder) {
@@ -114,10 +83,10 @@ const taskToFormState = (task) => {
     id: task.id || "new",
     title: task.title || "",
     note: task.note || "",
-    dueDate,
-    dueTime,
-    dateEnabled: Boolean(task.dueDate) || Boolean(task.dateEnabled),
-    timeEnabled: Boolean(task.dueDate && dueTime !== "00:00") || Boolean(task.timeEnabled),
+    dueDate: parsed.dateStr,
+    dueTime: parsed.timeStr,
+    dateEnabled: parsed.dateEnabled,
+    timeEnabled: parsed.timeEnabled,
     priority: task.priority || "None",
     list: task.category || task.list || "Reminders",
     repeat: task.repeat || "Never",

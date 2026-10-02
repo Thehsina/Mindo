@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toggleTaskFirestore } from "../redux/tasksSlice";
 import { CalendarDays, AlertCircle, Edit2, CheckCircle2, Circle, X } from "lucide-react";
+import { formatDue } from "../utils/dateUtils";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 const locales = {
@@ -75,15 +76,9 @@ export default function CalendarPage() {
     setSelectedTask(null);
   };
 
-  const formatDate = (timestamp) => {
+  const formatDate = (timestamp, hasTime) => {
     if (!timestamp) return "";
-    const d = new Date(timestamp);
-    return d.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    return formatDue(timestamp, hasTime);
   };
 
   const calendarStyle = {
