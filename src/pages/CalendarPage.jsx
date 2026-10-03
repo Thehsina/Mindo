@@ -5,7 +5,7 @@ import { enUS } from "date-fns/locale";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toggleTaskFirestore } from "../redux/tasksSlice";
-import { CalendarDays, AlertCircle, Edit2, CheckCircle2, Circle, X } from "lucide-react";
+import { CalendarDays, Edit2, CheckCircle2, Circle, X } from "lucide-react";
 import { formatDue } from "../utils/dateUtils";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -31,7 +31,7 @@ function TaskEvent({ event }) {
   };
 
   return (
-    <div className={`p-1 rounded text-xs border shadow-sm h-full ${getPriorityStyle(event.priority)}`}>
+    <div className={`p-1 rounded text-xs border shadow-xs h-full ${getPriorityStyle(event.priority)}`}>
       <div className="flex items-center gap-1 font-medium truncate">
         {event.title}
       </div>
@@ -82,7 +82,7 @@ export default function CalendarPage() {
   };
 
   const calendarStyle = {
-    height: "600px",
+    height: "500px",
     background: "transparent",
   };
 
@@ -109,19 +109,19 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="animate-fade-in-up pb-8">
+    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-4 overflow-x-hidden max-w-full">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-          <CalendarDays className="w-8 h-8 text-indigo-500" />
+      <div className="shrink-0">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5 leading-none">
+          <CalendarDays className="w-7 h-7 text-indigo-500" />
           Calendar
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">View your tasks organized by due dates.</p>
+        <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">View your tasks organized by due dates.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="xl:col-span-3">
-          <div className="bento-card p-4 md:p-6 shadow-sm">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 flex-1 min-h-0 overflow-y-auto pr-0 sm:pr-1">
+        <div className="xl:col-span-3 min-h-[500px]">
+          <div className="bento-card !p-3 sm:!p-5 shadow-xs overflow-x-auto no-scrollbar">
             <Calendar
               localizer={localizer}
               events={events}
@@ -143,26 +143,26 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="xl:col-span-1 space-y-6">
+        <div className="xl:col-span-1 space-y-4">
           {/* Legend */}
-          <div className="bento-card">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Legend</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-rose-500 rounded border border-rose-600"></div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">High Priority</span>
+          <div className="bento-card !p-4">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Legend</h3>
+            <div className="grid grid-cols-2 xl:grid-cols-1 gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 bg-rose-500 rounded border border-rose-600 shrink-0"></div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">High Priority</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-amber-500 rounded border border-amber-600"></div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Medium Priority</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 bg-amber-500 rounded border border-amber-600 shrink-0"></div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Medium Priority</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-emerald-500 rounded border border-emerald-600"></div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Low Priority</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 bg-emerald-500 rounded border border-emerald-600 shrink-0"></div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Low Priority</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-indigo-500 rounded border border-indigo-600"></div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Default Priority</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 bg-indigo-500 rounded border border-indigo-600 shrink-0"></div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Default Priority</span>
               </div>
             </div>
           </div>
@@ -173,23 +173,23 @@ export default function CalendarPage() {
             if (tasksWithoutDates.length === 0) return null;
 
             return (
-              <div className="bento-card">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 flex items-center justify-between">
+              <div className="bento-card !p-4">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3 flex items-center justify-between">
                   No Due Date
-                  <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs">
+                  <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs font-bold">
                     {tasksWithoutDates.length}
                   </span>
                 </h3>
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {tasksWithoutDates.slice(0, 5).map(task => (
-                    <div key={task.id} className="flex items-start gap-3">
+                    <div key={task.id} className="flex items-start gap-2.5">
                       <input
                         type="checkbox"
                         checked={task.completed}
                         onChange={() => dispatch(toggleTaskFirestore(task))}
                         className="w-4 h-4 accent-indigo-600 cursor-pointer shrink-0 mt-0.5 rounded"
                       />
-                      <span className={`text-sm font-medium truncate ${
+                      <span className={`text-xs font-medium truncate ${
                         task.completed ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"
                       }`}>
                         {task.title}
@@ -197,7 +197,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                   {tasksWithoutDates.length > 5 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium pt-2 border-t border-slate-100 dark:border-slate-800/60 text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800/60 text-center">
                       +{tasksWithoutDates.length - 5} more
                     </p>
                   )}
@@ -210,27 +210,27 @@ export default function CalendarPage() {
 
       {/* Task Details Modal Overlay */}
       {selectedTask && (
-        <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in-up">
-          <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-slate-800/60 rounded-3xl p-6 shadow-xl max-w-md w-full relative">
+        <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-fade-in">
+          <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-slate-800/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl max-w-md w-full relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedTask(null)}
-              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="absolute top-3 right-3 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
             
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white pr-8 mb-4">{selectedTask.title}</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white pr-8 mb-3">{selectedTask.title}</h3>
 
             {selectedTask.description && (
-              <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 bg-slate-50 dark:bg-[#1a1a1e] p-3 rounded-xl border border-slate-100 dark:border-slate-800/60">
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mb-4 bg-slate-50 dark:bg-[#1a1a1e] p-3 rounded-xl border border-slate-100 dark:border-slate-800/60">
                 {selectedTask.description}
               </p>
             )}
 
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/60">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Priority</span>
-                <span className={`text-sm font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Priority</span>
+                <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
                   selectedTask.priority?.toLowerCase() === "high" ? "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400" :
                   selectedTask.priority?.toLowerCase() === "medium" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" :
                   selectedTask.priority?.toLowerCase() === "low" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" :
@@ -240,16 +240,16 @@ export default function CalendarPage() {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/60">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Category</span>
-                <span className="text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-[#1a1a1e] px-2 py-1 rounded-md">
+              <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Category</span>
+                <span className="text-xs font-semibold text-slate-900 dark:text-white bg-slate-100 dark:bg-[#1a1a1e] px-2 py-0.5 rounded-md">
                   {selectedTask.category || "General"}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/60">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Status</span>
-                <span className={`text-sm font-medium flex items-center gap-1.5 ${
+              <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Status</span>
+                <span className={`text-xs font-semibold flex items-center gap-1.5 ${
                   selectedTask.completed ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"
                 }`}>
                   {selectedTask.completed ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
@@ -257,28 +257,28 @@ export default function CalendarPage() {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Due Date</span>
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Due Date</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white">
                   {formatDate(selectedTask.dueDate)}
                 </span>
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => handleTaskToggle(selectedTask)}
-                className={`flex-1 flex items-center justify-center gap-2 font-medium rounded-xl px-4 py-3 transition-colors ${
+                className={`flex-1 min-h-[44px] sm:min-h-0 flex items-center justify-center gap-2 text-xs font-bold rounded-xl px-4 py-2.5 transition-colors cursor-pointer ${
                   selectedTask.completed 
                     ? "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-[#1a1a1e] dark:text-slate-300 dark:hover:bg-[#222226]" 
-                    : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
                 }`}
               >
                 {selectedTask.completed ? "Mark Incomplete" : "Mark Complete"}
               </button>
               <button
                 onClick={handleEditTask}
-                className="btn-secondary"
+                className="btn-secondary !py-2.5 text-xs font-bold min-h-[44px] sm:min-h-0"
               >
                 <Edit2 className="w-4 h-4" /> Edit
               </button>

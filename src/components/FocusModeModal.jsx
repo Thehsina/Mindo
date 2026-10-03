@@ -81,8 +81,8 @@ export default function FocusModeModal({ task, onClose, subtasks = [], onComplet
   const checkedCount = subtasks.filter((subtask) => subtask.completed).length;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#121214]">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/55 p-3 sm:p-4 backdrop-blur-sm">
+      <div className="w-[calc(100vw-24px)] sm:w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#121214]">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">Focus mode</p>

@@ -157,83 +157,83 @@ export default function ProfilePage() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center h-[calc(100vh-6rem)]">
-      <div className="text-slate-500 dark:text-slate-400 animate-pulse font-medium">Loading profile...</div>
+    <div className="flex items-center justify-center h-64">
+      <div className="text-slate-500 dark:text-slate-400 animate-pulse font-medium text-sm">Loading profile...</div>
     </div>
   );
 
   const initialLetter = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : "U";
 
   return (
-    <div className="animate-fade-in-up flex flex-col max-w-2xl mx-auto w-full pb-10">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center">
-          <User className="w-6 h-6" />
+    <div className="animate-fade-in-up flex flex-col max-w-2xl mx-auto w-full pb-6 space-y-4 max-w-full overflow-x-hidden">
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+          <User className="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Profile</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Your basic account details.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">Profile</h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Your account details and preferences.</p>
         </div>
       </div>
 
-      <div className="bento-card p-8">
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-28 h-28 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center text-4xl font-bold shadow-inner">
+      <div className="bento-card !p-4 sm:!p-8">
+        <div className="flex flex-col items-center mb-6 sm:mb-8">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center text-3xl sm:text-4xl font-black shadow-inner">
             {initialLetter}
           </div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-4">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-3 text-center">
             {profile.full_name || "User"}
           </h2>
-          <span className="bg-slate-100 dark:bg-[#1a1a1e] text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full text-xs font-medium mt-2">
+          <span className="bg-slate-100 dark:bg-[#1a1a1e] text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full text-xs font-semibold mt-1.5">
             Active Account
           </span>
         </div>
 
         {error && (
-          <div className="mb-6 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 p-4 rounded-xl text-sm font-semibold flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="mb-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
 
         {saved && (
-          <div className="mb-6 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-xl text-sm font-semibold flex items-center gap-2">
-            <Check className="w-5 h-5 shrink-0" />
+          <div className="mb-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+            <Check className="w-4 h-4 shrink-0" />
             Saved changes successfully!
           </div>
         )}
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 <User className="w-4 h-4 text-slate-400" /> Full Name
               </label>
               <input
                 value={profile.full_name}
                 onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                 placeholder="John Doe"
-                className="w-full bg-slate-50 dark:bg-[#1a1a1e] border border-slate-200 dark:border-slate-800/60 focus:border-indigo-500 focus:ring-indigo-500/50 rounded-xl p-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-shadow"
+                className="w-full bg-slate-50 dark:bg-[#1a1a1e] border border-slate-200 dark:border-slate-800/60 focus:border-indigo-500 focus:ring-indigo-500/50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-shadow"
               />
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 <Mail className="w-4 h-4 text-slate-400" /> Email Address
               </label>
               <input
                 value={profile.email}
                 disabled
-                className="w-full bg-slate-100 dark:bg-[#121214] border border-slate-200 dark:border-slate-800/60 rounded-xl p-3 text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none"
+                className="w-full bg-slate-100 dark:bg-[#121214] border border-slate-200 dark:border-slate-800/60 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none"
               />
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Email cannot be changed.</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-medium">Email cannot be changed.</p>
             </div>
           </div>
 
           <button
             onClick={saveProfile}
             disabled={saving}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-colors shadow-md shadow-indigo-600/20 mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-indigo-600/20 mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer text-xs sm:text-sm"
           >
             {saving ? "Saving Changes..." : "Save Changes"}
           </button>

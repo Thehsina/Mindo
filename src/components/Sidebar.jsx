@@ -44,7 +44,7 @@ export default function Sidebar() {
   const displayName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "User";
 
   return (
-    <aside className="w-full flex flex-col border-b border-slate-200/80 bg-white/75 p-3 backdrop-blur-xl dark:border-slate-800/60 dark:bg-[#121214]/80 md:h-full md:w-64 md:border-b-0 md:border-r md:p-4">
+    <aside className="hidden md:flex flex-col border-b border-slate-200/80 bg-white/75 p-3 backdrop-blur-xl dark:border-slate-800/60 dark:bg-[#121214]/80 md:h-full md:w-64 md:border-b-0 md:border-r md:p-4 shrink-0">
       <div className="mb-4 px-1 py-1 md:mb-5">
         <BrandWordmark compact showTagline className="leading-none" />
       </div>

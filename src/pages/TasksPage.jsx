@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import TaskList from "../components/TaskList";
 import TaskBoard from "../components/TaskBoard";
 import FilterTask from "../components/FilterTask";
-import { addTaskFirestore, fetchTasksFirestore } from "../redux/tasksSlice";
-import { LayoutList, Kanban, Search, Plus, ArrowUpDown } from "lucide-react";
+import { fetchTasksFirestore } from "../redux/tasksSlice";
+import { LayoutList, Kanban, Search, ArrowUpDown } from "lucide-react";
 
 const getTaskDateValue = (task) => {
   if (!task.dueDate) return Number.MAX_SAFE_INTEGER;
@@ -27,7 +27,6 @@ export default function TasksPage() {
   const [viewMode, setViewMode] = useState("list");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("dueDate");
-  const [quickAdd, setQuickAdd] = useState("");
 
   useEffect(() => {
     dispatch(fetchTasksFirestore());
@@ -83,115 +82,73 @@ export default function TasksPage() {
       return aDue - bDue;
     });
 
-  const handleQuickAdd = async (event) => {
-    event.preventDefault();
-    const title = quickAdd.trim();
-    if (!title) return;
-
-    await dispatch(
-      addTaskFirestore({
-        title,
-        note: "",
-        dueDate: null,
-        priority: "None",
-        category: "Reminders",
-        repeat: "Never",
-        organization: "",
-        placesPeople: "",
-        locationType: "none",
-        locationReminder: false,
-        locationName: "",
-        completed: false,
-      })
-    );
-
-    setQuickAdd("");
-  };
-
   return (
-    <div className="animate-fade-in-up flex flex-col h-[calc(100vh-4rem)]">
-      <div className="mb-6 flex flex-col gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Tasks</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Everything on your mind, organized.</p>
-        </div>
-
-        <form onSubmit={handleQuickAdd} className="flex flex-col sm:flex-row gap-3 rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-white/70 dark:bg-[#121214]/80 p-3 shadow-sm">
-          <div className="flex-1 flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#1a1a1e] border border-slate-200 dark:border-slate-800/60">
-            <Plus className="w-4 h-4 text-indigo-500" />
-            <input
-              value={quickAdd}
-              onChange={(event) => setQuickAdd(event.target.value)}
-              placeholder="What's on your mind?"
-              className="w-full bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-          >
-            Add task
-          </button>
-        </form>
+    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-3 sm:space-y-3.5 overflow-x-hidden max-w-full">
+      {/* 1. Header */}
+      <div className="shrink-0">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">Tasks</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Everything on your mind, organized.</p>
       </div>
 
-      <div className="mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div className="flex flex-1 items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800/60 bg-slate-50 dark:bg-[#1a1a1e] px-3 py-2 max-w-xl">
-          <Search className="w-4 h-4 text-slate-400" />
+      {/* 2. Search and Filter Row */}
+      <div className="shrink-0 flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center justify-between gap-2 max-w-full">
+        {/* Full width Search input on mobile */}
+        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800/60 bg-slate-50 dark:bg-[#1a1a1e] px-3.5 py-2 w-full sm:max-w-sm">
+          <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search tasks"
-            className="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+            placeholder="Search tasks..."
+            className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-2 max-w-full overflow-x-auto no-scrollbar">
           <FilterTask filter={filter} setFilter={setFilter} />
 
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800/60 bg-slate-50 dark:bg-[#1a1a1e] px-2.5 py-2">
-            <ArrowUpDown className="w-4 h-4 text-slate-400" />
-            <select
-              value={sortBy}
-              onChange={(event) => setSortBy(event.target.value)}
-              className="bg-transparent text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
-            >
-              <option value="dueDate">Due date</option>
-              <option value="priority">Priority</option>
-              <option value="createdAt">Created date</option>
-              <option value="title">Title</option>
-            </select>
-          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800/60 bg-slate-50 dark:bg-[#1a1a1e] px-2 py-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="dueDate">Due date</option>
+                <option value="priority">Priority</option>
+                <option value="createdAt">Created date</option>
+                <option value="title">Title</option>
+              </select>
+            </div>
 
-          <div className="flex items-center bg-slate-100 dark:bg-[#1a1a1e] p-1 rounded-xl">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 rounded-lg transition-colors ${viewMode === "list" ? "bg-white dark:bg-[#2a2a2e] shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
-            >
-              <LayoutList className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode("board")}
-              className={`p-2 rounded-lg transition-colors ${viewMode === "board" ? "bg-white dark:bg-[#2a2a2e] shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
-            >
-              <Kanban className="w-5 h-5" />
-            </button>
+            <div className="flex items-center bg-slate-100 dark:bg-[#1a1a1e] p-0.5 rounded-xl">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center ${viewMode === "list" ? "bg-white dark:bg-[#2a2a2e] shadow-xs text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                title="List View"
+              >
+                <LayoutList className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("board")}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center ${viewMode === "board" ? "bg-white dark:bg-[#2a2a2e] shadow-xs text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                title="Board View"
+              >
+                <Kanban className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col">
+      {/* 3. Task List Content Area */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden max-w-full">
         {viewMode === "list" ? (
-          <div className="bento-card flex-1 overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Task List <span className="text-slate-400 font-medium ml-2 text-sm">{filteredTasks.length}</span>
-              </h2>
-            </div>
+          <div className="bento-card flex-1 min-h-0 flex flex-col !p-3 sm:!p-4 overflow-hidden max-w-full">
             <TaskList tasks={filteredTasks} />
           </div>
         ) : (
-          <div className="flex-1 overflow-x-auto pb-4">
+          <div className="flex-1 min-h-0 overflow-x-auto pb-2 no-scrollbar max-w-full">
             <TaskBoard tasks={filteredTasks} />
           </div>
         )}

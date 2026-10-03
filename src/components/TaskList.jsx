@@ -265,56 +265,71 @@ export default function TaskList({ tasks }) {
     }
   };
 
+  const getPriorityDot = (p) => {
+    const val = (p || "").toLowerCase();
+    if (val === "high") return "bg-rose-500 shadow-xs shadow-rose-500/50";
+    if (val === "medium") return "bg-amber-500 shadow-xs shadow-amber-500/50";
+    if (val === "low") return "bg-blue-400 shadow-xs shadow-blue-400/50";
+    return "bg-slate-300 dark:bg-slate-700 opacity-40";
+  };
+
   const renderTaskRow = (task) => {
-    const priority = priorityMeta[task.priority || "None"];
-    const textClass = task.completed ? "text-slate-400 dark:text-slate-500 line-through" : "text-slate-900 dark:text-white";
     const taskSubtasks = subtasksByTask[task.id] || [];
     const completedSubtasks = taskSubtasks.filter((subtask) => subtask.completed).length;
-    const progressPercent = taskSubtasks.length ? (completedSubtasks / taskSubtasks.length) * 100 : 0;
 
     return (
-      <div key={task.id} className="group border border-slate-200 dark:border-slate-800/60 rounded-2xl p-4 bg-slate-50 hover:bg-slate-100 dark:bg-[#1a1a1e] dark:hover:bg-[#222226] transition-colors">
-        <div className="flex items-center gap-4">
-          <input
-            type="checkbox"
-            checked={Boolean(task.completed)}
-            onChange={() => dispatch(toggleTaskFirestore(task))}
-            className="h-5 w-5 accent-indigo-600 rounded cursor-pointer"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              {priority.mark && (
-                <span className="text-rose-500 font-bold shrink-0 text-sm">{priority.mark}</span>
-              )}
-              <span className={`${textClass} font-semibold truncate`}>
-                {task.title || "(Untitled)"}
-              </span>
-            </div>
-
-            {taskSubtasks.length > 0 && (
-              <div className="mt-2">
-                <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  <span>{completedSubtasks} of {taskSubtasks.length} completed</span>
-                  <span>{Math.round(progressPercent)}%</span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {task.dueDate && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate font-medium">{formatDue(task.dueDate)}</p>
-            )}
+      <div
+        key={task.id}
+        className="group flex items-center justify-between gap-2.5 border border-slate-200/80 dark:border-slate-800/60 rounded-xl px-3 py-2.5 sm:py-2 bg-slate-50/80 hover:bg-slate-100/90 dark:bg-[#1a1a1e]/80 dark:hover:bg-[#222226] transition-all duration-150 max-w-full overflow-hidden min-h-[48px]"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {/* Checkbox with min 44px touch target on mobile */}
+          <div
+            onClick={() => dispatch(toggleTaskFirestore(task))}
+            className="flex items-center justify-center min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 cursor-pointer shrink-0"
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(task.completed)}
+              onChange={() => {}}
+              aria-label={task.completed ? `Mark ${task.title} as incomplete` : `Mark ${task.title} as complete`}
+              className="h-4.5 w-4.5 accent-indigo-600 rounded cursor-pointer shrink-0"
+            />
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+          <span
+            className={`h-2.5 w-2.5 rounded-full shrink-0 ${getPriorityDot(task.priority)}`}
+            title={`Priority: ${task.priority || "None"}`}
+          />
+
+          <span
+            onClick={() => openInfo(task)}
+            className={`text-xs sm:text-sm font-semibold truncate sm:whitespace-nowrap cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex-1 min-w-0 ${
+              task.completed ? "text-slate-400 dark:text-slate-500 line-through" : "text-slate-900 dark:text-white"
+            }`}
+          >
+            {task.title || "(Untitled)"}
+          </span>
+
+          {taskSubtasks.length > 0 && (
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800 px-1.5 py-0.5 rounded-md shrink-0">
+              {completedSubtasks}/{taskSubtasks.length}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {task.dueDate && (
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              {formatDue(task.dueDate)}
+            </span>
+          )}
+
+          <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <button
               type="button"
               onClick={() => openInfo(task)}
-              className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center cursor-pointer"
               aria-label="Task details"
             >
               <InfoIcon />
@@ -322,10 +337,10 @@ export default function TaskList({ tasks }) {
             <button
               type="button"
               onClick={() => dispatch(deleteTaskFirestore(task.id))}
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center cursor-pointer"
               aria-label="Delete task"
             >
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -334,33 +349,40 @@ export default function TaskList({ tasks }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      <button
-        type="button"
-        onClick={() => openInfo(createEmptyDraft())}
-        className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-[#1a1a1e] dark:hover:bg-[#222226] px-4 py-4 text-slate-600 dark:text-slate-400 font-medium transition-colors"
-      >
-        <Plus className="w-5 h-5" />
-        Add a new task
-      </button>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden max-w-full">
+      {/* Header Row with Task List title & Add task button */}
+      <div className="flex items-center justify-between gap-3 mb-2.5 shrink-0">
+        <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          Task List
+          <span className="rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 px-2 py-0.5 text-xs font-bold">
+            {tasks.length}
+          </span>
+        </h2>
 
-      <div className="mt-3 flex-1 min-h-0 overflow-y-auto pr-2 space-y-3">
+        <button
+          type="button"
+          onClick={() => openInfo(createEmptyDraft())}
+          className="inline-flex min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-3 py-2 sm:py-1.5 text-xs font-bold text-white shadow-xs transition-colors shrink-0 cursor-pointer"
+        >
+          <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+          <span>Add task</span>
+        </button>
+      </div>
+
+      {/* Task list area */}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-0 sm:pr-1 space-y-1.5 max-w-full">
         {tasks.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] px-6 py-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Plus className="w-5 h-5" />
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] px-4 py-8 text-center">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Plus className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">No tasks match this view</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Create a fresh task or adjust your filters.</p>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">No tasks match this view</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Click "Add task" to create one.</p>
             </div>
           </div>
         ) : (
           tasks.map((task) => renderTaskRow(task))
-        )}
-
-        {tasks.length === 0 && (
-          <p className="text-center text-slate-500 dark:text-slate-400 py-8 font-medium">No tasks yet — click the button above to get started</p>
         )}
       </div>
 
