@@ -109,7 +109,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-4 overflow-x-hidden max-w-full">
+    <div className="animate-fade-in-up flex flex-col md:h-full md:min-h-0 space-y-4 overflow-x-hidden max-w-full">
       {/* Header */}
       <div className="shrink-0">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5 leading-none">
@@ -119,7 +119,7 @@ export default function CalendarPage() {
         <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">View your tasks organized by due dates.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 flex-1 min-h-0 overflow-y-auto pr-0 sm:pr-1">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1">
         <div className="xl:col-span-3 min-h-[500px]">
           <div className="bento-card !p-3 sm:!p-5 shadow-xs overflow-x-auto no-scrollbar">
             <Calendar

@@ -274,7 +274,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-3 sm:space-y-4 overflow-y-auto pr-0 sm:pr-1 max-w-full overflow-x-hidden">
+    <div className="animate-fade-in-up flex flex-col md:h-full md:min-h-0 space-y-3 sm:space-y-4 md:overflow-y-auto pr-0 sm:pr-1 max-w-full overflow-x-hidden">
       {/* Top Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
         <div>

@@ -349,7 +349,7 @@ export default function TaskList({ tasks }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden max-w-full">
+    <div className="md:flex-1 flex flex-col md:min-h-0 md:overflow-hidden max-w-full">
       {/* Header Row with Task List title & Add task button */}
       <div className="flex items-center justify-between gap-3 mb-2.5 shrink-0">
         <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -370,7 +370,7 @@ export default function TaskList({ tasks }) {
       </div>
 
       {/* Task list area */}
-      <div className="flex-1 min-h-0 overflow-y-auto pr-0 sm:pr-1 space-y-1.5 max-w-full">
+      <div className="md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1 space-y-1.5 max-w-full">
         {tasks.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] px-4 py-8 text-center">
             <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">

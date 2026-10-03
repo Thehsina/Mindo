@@ -330,7 +330,7 @@ export default function GroceryList() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-4 overflow-hidden max-w-full">
+    <div className="flex md:h-full md:min-h-0 flex-col gap-3 sm:gap-4 md:overflow-hidden max-w-full">
       {/* 1. Toggle & Search Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shrink-0 max-w-full">
         <div className="flex items-center gap-2 max-w-full">
@@ -414,7 +414,7 @@ export default function GroceryList() {
       </div>
 
       {/* 3. Categories / Lists Cards Grid */}
-      <div className="flex-1 min-h-0 overflow-y-auto pr-0 sm:pr-1 max-w-full">
+      <div className="md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1 max-w-full">
         {filteredGroups.length === 0 ? (
           <div className="flex h-full min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-6 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             <ShoppingBag className="w-8 h-8 text-slate-300 dark:text-slate-700" />

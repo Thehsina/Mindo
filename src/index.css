@@ -41,11 +41,11 @@
 @layer components {
   /* Layout classes */
   .layout-container {
-    @apply flex h-screen w-full overflow-hidden;
+    @apply flex min-h-[100dvh] md:h-screen w-full md:overflow-hidden;
   }
   
   .main-content {
-    @apply flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 min-h-0;
+    @apply flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-6 min-h-0;
   }
 
   /* Bento Grid Card - The core component of the new design */

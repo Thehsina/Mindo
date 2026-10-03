@@ -83,7 +83,7 @@ export default function TasksPage() {
     });
 
   return (
-    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-3 sm:space-y-3.5 overflow-x-hidden max-w-full">
+    <div className="animate-fade-in-up flex flex-col md:h-full md:min-h-0 space-y-3 sm:space-y-3.5 overflow-x-hidden max-w-full">
       {/* 1. Header */}
       <div className="shrink-0">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">Tasks</h1>
@@ -142,13 +142,13 @@ export default function TasksPage() {
       </div>
 
       {/* 3. Task List Content Area */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden max-w-full">
+      <div className="md:flex-1 md:min-h-0 flex flex-col md:overflow-hidden max-w-full">
         {viewMode === "list" ? (
-          <div className="bento-card flex-1 min-h-0 flex flex-col !p-3 sm:!p-4 overflow-hidden max-w-full">
+          <div className="bento-card md:flex-1 md:min-h-0 flex flex-col !p-3 sm:!p-4 md:overflow-hidden max-w-full">
             <TaskList tasks={filteredTasks} />
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-x-auto pb-2 no-scrollbar max-w-full">
+          <div className="md:flex-1 md:min-h-0 overflow-x-auto pb-2 no-scrollbar max-w-full">
             <TaskBoard tasks={filteredTasks} />
           </div>
         )}

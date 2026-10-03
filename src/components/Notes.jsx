@@ -146,7 +146,7 @@ export default function Notes() {
   };
 
   return (
-    <div className="flex flex-col min-h-0 h-full gap-4">
+    <div className="flex flex-col md:min-h-0 md:h-full gap-4">
       {/* Create Note Input Box */}
       <div className="flex flex-col gap-3 shrink-0 bg-slate-50 dark:bg-[#1a1a1e] p-4 rounded-2xl border border-slate-200 dark:border-slate-800/60 transition-colors focus-within:border-indigo-400 dark:focus-within:border-indigo-500/50 shadow-xs">
         <input
@@ -212,7 +212,7 @@ export default function Notes() {
       </div>
 
       {/* Notes Cards Grid - Designed like Grocery Cards */}
-      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+      <div className="md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1">
         {notes.length === 0 ? (
           <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-8 text-center text-sm text-slate-500 dark:text-slate-400">
             <Notebook className="w-8 h-8 text-slate-300 dark:text-slate-700" />
