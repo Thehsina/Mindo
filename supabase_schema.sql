@@ -162,3 +162,71 @@ ALTER TABLE public.grocery ENABLE ROW LEVEL SECURITY;
 -- Create Policies
 CREATE POLICY "Users can manage their own grocery list" ON public.grocery
   FOR ALL USING (auth.uid() = user_id);
+
+-----------------------------------------------------------
+-- 5. Habits Table
+-----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.habits (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE DEFAULT auth.uid() NOT NULL,
+  name TEXT NOT NULL,
+  icon TEXT DEFAULT '⭐',
+  frequency TEXT DEFAULT 'daily',
+  custom_days JSONB DEFAULT '[]'::jsonb,
+  target TEXT DEFAULT '',
+  reminder_time TEXT DEFAULT '',
+  paused BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.habits ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies
+CREATE POLICY "Users can manage their own habits" ON public.habits
+  FOR ALL USING (auth.uid() = user_id);
+
+-----------------------------------------------------------
+-- 6. Habit Completions Table
+-----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.habit_completions (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE DEFAULT auth.uid() NOT NULL,
+  habit_id TEXT REFERENCES public.habits(id) ON DELETE CASCADE NOT NULL,
+  date TEXT NOT NULL,
+  completed BOOLEAN DEFAULT true,
+  progress_value NUMERIC DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.habit_completions ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies
+CREATE POLICY "Users can manage their own habit completions" ON public.habit_completions
+  FOR ALL USING (auth.uid() = user_id);
+
+-----------------------------------------------------------
+-- 7. Meals Table (Meal Prep)
+-----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.meals (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE DEFAULT auth.uid() NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT DEFAULT 'dinner',
+  day TEXT DEFAULT 'monday',
+  date_str TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
+  ingredients JSONB DEFAULT '[]'::jsonb,
+  favorite BOOLEAN DEFAULT false,
+  tags JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.meals ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies
+CREATE POLICY "Users can manage their own meals" ON public.meals
+  FOR ALL USING (auth.uid() = user_id);
+

@@ -80,40 +80,53 @@
     @apply relative bg-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-1 ring-indigo-500/70 dark:bg-indigo-500 dark:text-white;
   }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  .no-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .no-scrollbar,
+  .scrollbar-none {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 }
 
+/* Custom Styled Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(99, 102, 241, 0.5) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
 }
 
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-*::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-*::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.6);
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
   border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
 }
 
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.7);
-  border: 2px solid transparent;
-  background-clip: padding-box;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+.dark * {
+  scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
 }
 
 @keyframes fadeInUp {
@@ -127,17 +140,214 @@
 }
 
 /* React Big Calendar Modern Overrides */
-.rbc-calendar { background: transparent; font-family: inherit; }
-.rbc-header { @apply py-3 font-semibold text-sm border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider; }
-.rbc-month-view, .rbc-time-view { @apply border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-[#121214] shadow-sm; }
-.rbc-month-row, .rbc-day-bg { @apply border-t border-slate-200 dark:border-slate-800 cursor-pointer transition-colors duration-150; }
-.rbc-day-bg:hover { @apply bg-indigo-50/40 dark:bg-indigo-900/20; }
-.rbc-day-bg + .rbc-day-bg, .rbc-header + .rbc-header { @apply border-l border-slate-200 dark:border-slate-800; }
-.rbc-date-cell { @apply p-2 font-medium text-sm text-slate-700 dark:text-slate-300 cursor-pointer; }
-.rbc-off-range-bg { @apply bg-slate-50 dark:bg-black/20; }
-.rbc-today { @apply bg-indigo-50/50 dark:bg-indigo-900/10; }
-.rbc-event { @apply bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 rounded-md px-2 py-1 text-xs font-semibold shadow-none cursor-pointer transition-all hover:scale-[1.02] hover:bg-indigo-500/20; }
-.rbc-toolbar { @apply flex flex-wrap items-center justify-between mb-6; }
-.rbc-toolbar button { @apply bg-slate-100 dark:bg-[#1a1a1e] text-slate-700 dark:text-slate-300 border border-transparent dark:border-slate-800 rounded-xl px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-200 dark:hover:bg-[#222226] cursor-pointer; }
-.rbc-toolbar button.rbc-active { @apply bg-indigo-500 text-white hover:bg-indigo-600 border-transparent dark:border-transparent; }
-.rbc-toolbar-label { @apply text-lg font-bold text-slate-900 dark:text-white; }
+.rbc-calendar {
+  background: transparent;
+  font-family: inherit;
+  height: 100% !important;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.rbc-month-view,
+.rbc-time-view {
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  border-radius: 1.5rem !important;
+  overflow: hidden !important;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide all scrollbars in react-big-calendar views */
+.rbc-month-view::-webkit-scrollbar,
+.rbc-time-view::-webkit-scrollbar,
+.rbc-time-content::-webkit-scrollbar,
+.rbc-row-content::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.rbc-month-view,
+.rbc-time-view,
+.rbc-time-content,
+.rbc-row-content {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.dark .rbc-month-view,
+.dark .rbc-time-view {
+  border-color: rgba(30, 41, 59, 0.8) !important;
+  background: #121214;
+}
+
+/* Header Row (SUN, MON, TUE, etc) */
+.rbc-header {
+  padding: 10px 0 !important;
+  font-weight: 700 !important;
+  font-size: 0.725rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: #64748b !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  background: #f8fafc;
+}
+
+.dark .rbc-header {
+  color: #94a3b8 !important;
+  border-bottom-color: #1e293b !important;
+  background: #1a1a1e;
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid #e2e8f0 !important;
+}
+
+.dark .rbc-header + .rbc-header {
+  border-left-color: #1e293b !important;
+}
+
+/* Day background cells & borders */
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #f1f5f9 !important;
+}
+
+.dark .rbc-day-bg + .rbc-day-bg {
+  border-left-color: #1e293b !important;
+}
+
+.rbc-month-row {
+  border-top: 1px solid #e2e8f0 !important;
+  min-height: 40px !important;
+  flex: 1 0 0 !important;
+  overflow: hidden !important;
+}
+
+.dark .rbc-month-row {
+  border-top-color: #1e293b !important;
+}
+
+/* Date Cell Numbers */
+.rbc-date-cell {
+  padding: 6px 10px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+}
+
+.dark .rbc-date-cell {
+  color: #94a3b8 !important;
+}
+
+.rbc-now .rbc-button-link {
+  color: #4f46e5 !important;
+  font-weight: 900 !important;
+}
+
+.rbc-today {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+
+.dark .rbc-today {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Toolbar Controls */
+.rbc-toolbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 1rem !important;
+  gap: 0.75rem !important;
+}
+
+.rbc-toolbar-label {
+  font-size: 1.125rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+}
+
+.dark .rbc-toolbar-label {
+  color: #ffffff !important;
+}
+
+.rbc-btn-group {
+  display: inline-flex !important;
+  gap: 0.25rem !important;
+  background: #f1f5f9;
+  padding: 0.25rem !important;
+  border-radius: 0.85rem !important;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .rbc-btn-group {
+  background: #1a1a1e;
+  border-color: rgba(30, 41, 59, 0.8);
+}
+
+.rbc-btn-group button {
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  padding: 0.35rem 0.75rem !important;
+  border-radius: 0.65rem !important;
+  transition: all 0.15s ease !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.dark .rbc-btn-group button {
+  color: #94a3b8 !important;
+}
+
+.rbc-btn-group button:hover {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+
+.dark .rbc-btn-group button:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.rbc-btn-group button.rbc-active {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .rbc-btn-group button.rbc-active {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+}
+
+/* Events Styling */
+.rbc-event {
+  background: transparent !important;
+  border: none !important;
+  padding: 1px 2px !important;
+  margin-bottom: 2px !important;
+  box-shadow: none !important;
+}
+
+.rbc-event:focus {
+  outline: none !important;
+}
+
+.rbc-show-more {
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  color: #4f46e5 !important;
+  background: transparent !important;
+}
+
+.dark .rbc-show-more {
+  color: #818cf8 !important;
+}

@@ -312,6 +312,42 @@ export const detectIntent = (input, session = {}, data = {}) => {
     };
   }
 
+  if (/(what habits|show habits|habit streak|my habits|today's habits|what habit)/i.test(lower)) {
+    return {
+      intent: "HABIT_QUERY",
+      action: { scope: "habits", type: "read" },
+      parameters: { raw },
+      response: "",
+    };
+  }
+
+  if (/(what meals|show meals|what's for dinner|today's meals|my meals|meal plan|what am i eating)/i.test(lower)) {
+    return {
+      intent: "MEAL_QUERY",
+      action: { scope: "meals", type: "read" },
+      parameters: { raw },
+      response: "",
+    };
+  }
+
+  if (/(mark|complete).*habit|(habit).*as complete|complete (reading|water|meditation|exercise)/i.test(lower)) {
+    return {
+      intent: "HABIT_COMPLETE",
+      action: { scope: "habits", type: "update" },
+      parameters: { raw },
+      response: "",
+    };
+  }
+
+  if (/(add|put).*ingredients.*(grocery|groceries)/i.test(lower)) {
+    return {
+      intent: "MEAL_GROCERY_IMPORT",
+      action: { scope: "meals", type: "import_grocery" },
+      parameters: { raw },
+      response: "",
+    };
+  }
+
   if (category.type === "general" && !isQuery(lower) && !hasCommandVerb(raw)) {
     return {
       intent: "GENERAL_PRODUCTIVITY",
@@ -368,8 +404,26 @@ const summarizeGroceries = (grocery = [], input = "") => {
   return `You currently have ${grocery.length} grocery item${grocery.length > 1 ? "s" : ""}: ${formatList(grocery)}.`;
 };
 
+const summarizeHabits = (habits = [], completions = []) => {
+  const active = habits.filter((h) => !h.paused);
+  if (!active.length) return "You do not have any active habits set up yet.";
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const doneCount = active.filter((h) => completions.some((c) => c.habitId === h.id && c.date === todayStr && c.completed)).length;
+  return `You have ${active.length} active habits today. You've completed ${doneCount}.`;
+};
+
+const summarizeMeals = (meals = []) => {
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const todayName = dayNames[new Date().getDay()];
+  const todayMeals = meals.filter((m) => m.day === todayName);
+  if (!todayMeals.length) return `You don't have any meals planned for ${todayName} yet.`;
+
+  const formatted = todayMeals.map((m) => `${m.type.charAt(0).toUpperCase() + m.type.slice(1)} — ${m.name}`).join("\n");
+  return `Today's meals:\n${formatted}`;
+};
+
 export const generateIntentResponse = (intent, context = {}) => {
-  const { tasks = [], grocery = [] } = context;
+  const { tasks = [], grocery = [], habits = [], completions = [], meals = [] } = context;
 
   switch (intent) {
     case "CASUAL_CONVERSATION":
@@ -381,6 +435,18 @@ export const generateIntentResponse = (intent, context = {}) => {
     case "GROCERY_QUERY":
       return summarizeGroceries(grocery, context.rawInput || "");
 
+    case "HABIT_QUERY":
+      return summarizeHabits(habits, completions);
+
+    case "MEAL_QUERY":
+      return summarizeMeals(meals);
+
+    case "HABIT_COMPLETE":
+      return "Habit marked as completed for today. Keep up the great streak! 🔥";
+
+    case "MEAL_GROCERY_IMPORT":
+      return "Ingredients from your meal plan can be added directly to your Grocery list.";
+
     case "PLAN_DAY": {
       const nextTasks = tasks.filter((task) => !task.completed).sort((a, b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0)).slice(0, 3);
       if (!nextTasks.length) return "You have no active tasks yet. This is a good moment to add your next priority item.";
@@ -388,7 +454,7 @@ export const generateIntentResponse = (intent, context = {}) => {
     }
 
     case "GENERAL_PRODUCTIVITY":
-      return "I can help with tasks, groceries, planning, or quick productivity questions."
+      return "I can help with tasks, habits, meals, groceries, planning, or quick productivity questions.";
 
     default:
       return "I can help with that.";

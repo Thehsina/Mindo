@@ -1,15 +1,18 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { LayoutDashboard, CheckSquare, Calendar as CalendarIcon, FileText, ShoppingCart, Settings, UserCircle2 } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Flame, Calendar as CalendarIcon, ShoppingCart, Utensils, Receipt, FileText, Settings, UserCircle2 } from "lucide-react";
 import { supabase, isSupabaseConfigured, getCurrentUser } from "../supabase";
 import BrandWordmark from "./BrandWordmark";
 
 const navLinks = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/tasks", label: "Tasks", icon: CheckSquare },
+  { path: "/habits", label: "Habits", icon: Flame },
   { path: "/calendar", label: "Calendar", icon: CalendarIcon },
-  { path: "/notes", label: "Notes", icon: FileText },
   { path: "/grocery", label: "Grocery", icon: ShoppingCart },
+  { path: "/meal-planner", label: "Meal Planner", icon: Utensils },
+  { path: "/expenses", label: "Expenses", icon: Receipt },
+  { path: "/notes", label: "Notes", icon: FileText },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -44,12 +47,12 @@ export default function Sidebar() {
   const displayName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "User";
 
   return (
-    <aside className="hidden md:flex flex-col border-b border-slate-200/80 bg-white/75 p-3 backdrop-blur-xl dark:border-slate-800/60 dark:bg-[#121214]/80 md:h-full md:w-64 md:border-b-0 md:border-r md:p-4 shrink-0">
-      <div className="mb-4 px-1 py-1 md:mb-5">
+    <aside className="hidden md:flex flex-col border-b border-slate-200/80 bg-white/75 p-3 backdrop-blur-xl dark:border-slate-800/60 dark:bg-[#121214]/80 md:h-full md:w-64 md:border-b-0 md:border-r md:p-4 shrink-0 no-scrollbar overflow-hidden">
+      <div className="mb-4 px-1 py-1 md:mb-5 shrink-0">
         <BrandWordmark compact showTagline className="leading-none" />
       </div>
 
-      <nav className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3 md:grid-cols-1 md:gap-1 md:space-y-1 md:pr-1">
+      <nav className="grid grid-cols-2 gap-2 overflow-y-auto no-scrollbar pr-1 sm:grid-cols-3 md:grid-cols-1 md:gap-1 md:space-y-1 md:pr-1 flex-1">
         {navLinks.map(({ path, label, icon: Icon }) => {
           const isActive = location.pathname === path;
           return (

@@ -10,6 +10,9 @@ import {
   Settings,
   UserCircle2,
   Sparkles,
+  Flame,
+  Utensils,
+  Receipt,
   X,
 } from "lucide-react";
 
@@ -17,11 +20,14 @@ const mainNavLinks = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/tasks", label: "Tasks", icon: CheckSquare },
   { path: "/calendar", label: "Calendar", icon: CalendarIcon },
-  { path: "/notes", label: "Notes", icon: FileText },
   { path: "/grocery", label: "Grocery", icon: ShoppingCart },
 ];
 
 const secondaryNavLinks = [
+  { path: "/expenses", label: "Expenses", icon: Receipt },
+  { path: "/notes", label: "Notes", icon: FileText },
+  { path: "/habits", label: "Habits", icon: Flame },
+  { path: "/meal-planner", label: "Meal Planner", icon: Utensils },
   { path: "/command-center", label: "Command Center", icon: Sparkles },
   { path: "/settings", label: "Settings", icon: Settings },
   { path: "/profile", label: "Profile", icon: UserCircle2 },

@@ -22,18 +22,27 @@ const localizer = dateFnsLocalizer({
 });
 
 function TaskEvent({ event }) {
-  const getPriorityStyle = (priority) => {
+  const getPriorityStyle = (priority, completed) => {
+    if (completed) {
+      return "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800/80 dark:text-slate-500 dark:border-slate-700/60 line-through";
+    }
     const p = (priority || "").toLowerCase();
-    if (p === "high") return "bg-rose-500 text-white border-rose-600";
-    if (p === "medium") return "bg-amber-500 text-white border-amber-600";
-    if (p === "low") return "bg-emerald-500 text-white border-emerald-600";
-    return "bg-indigo-500 text-white border-indigo-600";
+    if (p === "high") return "bg-rose-500 text-white border-rose-600 shadow-2xs";
+    if (p === "medium") return "bg-amber-500 text-white border-amber-600 shadow-2xs";
+    if (p === "low") return "bg-emerald-500 text-white border-emerald-600 shadow-2xs";
+    return "bg-indigo-600 text-white border-indigo-700 shadow-2xs";
   };
 
   return (
-    <div className={`p-1 rounded text-xs border shadow-xs h-full ${getPriorityStyle(event.priority)}`}>
-      <div className="flex items-center gap-1 font-medium truncate">
-        {event.title}
+    <div
+      className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-all hover:scale-[1.02] cursor-pointer truncate ${getPriorityStyle(
+        event.priority,
+        event.completed
+      )}`}
+      title={`${event.title} (${event.priority || "Normal"} priority)`}
+    >
+      <div className="flex items-center gap-1 truncate">
+        <span className="truncate">{event.title}</span>
       </div>
     </div>
   );
@@ -82,7 +91,8 @@ export default function CalendarPage() {
   };
 
   const calendarStyle = {
-    height: "500px",
+    height: "100%",
+    minHeight: "350px",
     background: "transparent",
   };
 
@@ -109,19 +119,19 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="animate-fade-in-up flex flex-col md:h-full md:min-h-0 space-y-4 overflow-x-hidden max-w-full">
+    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-3 sm:space-y-4 overflow-hidden no-scrollbar max-w-full">
       {/* Header */}
       <div className="shrink-0">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5 leading-none">
-          <CalendarDays className="w-7 h-7 text-indigo-500" />
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 leading-none">
+          <CalendarDays className="w-5.5 h-5.5 text-indigo-500" />
           Calendar
         </h1>
         <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">View your tasks organized by due dates.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1">
-        <div className="xl:col-span-3 min-h-[500px]">
-          <div className="bento-card !p-3 sm:!p-5 shadow-xs overflow-x-auto no-scrollbar">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 flex-1 min-h-0 overflow-hidden no-scrollbar">
+        <div className="xl:col-span-3 h-full min-h-0 flex flex-col overflow-hidden no-scrollbar">
+          <div className="bento-card flex-1 min-h-0 flex flex-col !p-3 sm:!p-4 shadow-xs overflow-hidden no-scrollbar">
             <Calendar
               localizer={localizer}
               events={events}
@@ -143,9 +153,9 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="xl:col-span-1 space-y-4">
+        <div className="xl:col-span-1 flex flex-col space-y-4 overflow-y-auto no-scrollbar">
           {/* Legend */}
-          <div className="bento-card !p-4">
+          <div className="bento-card !p-4 shrink-0">
             <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Legend</h3>
             <div className="grid grid-cols-2 xl:grid-cols-1 gap-2.5">
               <div className="flex items-center gap-2.5">
@@ -173,14 +183,14 @@ export default function CalendarPage() {
             if (tasksWithoutDates.length === 0) return null;
 
             return (
-              <div className="bento-card !p-4">
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3 flex items-center justify-between">
+              <div className="bento-card !p-4 flex-1 min-h-0 flex flex-col">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3 flex items-center justify-between shrink-0">
                   No Due Date
                   <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs font-bold">
                     {tasksWithoutDates.length}
                   </span>
                 </h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2 flex-1 min-h-0 overflow-y-auto no-scrollbar pr-1">
                   {tasksWithoutDates.slice(0, 5).map(task => (
                     <div key={task.id} className="flex items-start gap-2.5">
                       <input
@@ -197,7 +207,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                   {tasksWithoutDates.length > 5 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800/60 text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800/60 text-center shrink-0">
                       +{tasksWithoutDates.length - 5} more
                     </p>
                   )}

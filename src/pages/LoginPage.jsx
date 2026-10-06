@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase, isSupabaseConfigured } from "../supabase";
-import { useNavigate } from "react-router-dom";
+import { supabase, isSupabaseConfigured, getCurrentUser } from "../supabase";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle2, Sparkles, LogIn, UserPlus, ArrowRight } from "lucide-react";
 import BrandWordmark from "../components/BrandWordmark";
 
@@ -64,6 +64,8 @@ const friendlyAuthError = (messageOrCode) => {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPath = location.state?.from?.pathname || "/dashboard";
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -74,16 +76,31 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      const localUser = localStorage.getItem("tm.local_user") || JSON.stringify({
-        id: "local-user",
-        email: "local@example.com",
-        user_metadata: { display_name: "Local User" }
-      });
-      localStorage.setItem("tm.local_user", localUser);
-      navigate("/dashboard");
-    }
-  }, [navigate]);
+    let active = true;
+
+    const checkExistingSession = async () => {
+      if (!isSupabaseConfigured) {
+        const localUser = localStorage.getItem("tm.local_user") || JSON.stringify({
+          id: "local-user",
+          email: "local@example.com",
+          user_metadata: { display_name: "Local User" }
+        });
+        localStorage.setItem("tm.local_user", localUser);
+        if (active) navigate(fromPath, { replace: true });
+        return;
+      }
+
+      const currentUser = await getCurrentUser();
+      if (active && currentUser) {
+        navigate(fromPath, { replace: true });
+      }
+    };
+
+    checkExistingSession();
+    return () => {
+      active = false;
+    };
+  }, [navigate, fromPath]);
 
   const clearFieldError = (field) => {
     setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -117,7 +134,7 @@ export default function LoginPage() {
         }));
       }
       
-      navigate("/dashboard");
+      navigate(fromPath, { replace: true });
       return;
     }
 
@@ -153,7 +170,7 @@ export default function LoginPage() {
         }
       }
 
-      navigate("/dashboard");
+      navigate(fromPath, { replace: true });
     } catch (err) {
       setAuthError(friendlyAuthError(err.code || err.message || err.toString()));
     } finally {
