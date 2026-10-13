@@ -20,9 +20,10 @@ import {
   Edit2,
   X,
   Check,
-  Sparkles,
+  Wand2,
   RotateCw,
 } from "lucide-react";
+import { formatLocalDate, getWeekDates, formatWeekRangeString } from "../utils/dateUtils";
 
 const MEAL_TYPES = [
   { id: "breakfast", label: "Breakfast", icon: "☀" },
@@ -52,43 +53,6 @@ const QUICK_MEALS = [
   "Fruit smoothie",
 ];
 
-const getWeekDates = (weekOffset = 0) => {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) + weekOffset * 7;
-  const monday = new Date(d.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-
-  const dates = [];
-  for (let i = 0; i < 7; i++) {
-    const cur = new Date(monday);
-    cur.setDate(monday.getDate() + i);
-    dates.push(cur);
-  }
-  return dates;
-};
-
-const formatWeekRangeString = (dates, weekOffset) => {
-  if (!dates || dates.length < 7) return "";
-  const start = dates[0];
-  const end = dates[6];
-
-  const startMonth = start.toLocaleDateString(undefined, { month: "short" });
-  const endMonth = end.toLocaleDateString(undefined, { month: "short" });
-  const startDay = start.getDate();
-  const endDay = end.getDate();
-
-  const rangeStr =
-    startMonth === endMonth
-      ? `${startMonth} ${startDay}–${endDay}`
-      : `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
-
-  if (weekOffset === 0) return `This Week · ${rangeStr}`;
-  if (weekOffset === -1) return `Last Week · ${rangeStr}`;
-  if (weekOffset === 1) return `Next Week · ${rangeStr}`;
-  return rangeStr;
-};
-
 export default function MealPlannerPage() {
   const dispatch = useDispatch();
   const meals = useSelector((state) => state.meals || []);
@@ -100,6 +64,7 @@ export default function MealPlannerPage() {
   // Add / Edit Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
+  const [targetDate, setTargetDate] = useState("");
   const [targetDay, setTargetDay] = useState("Monday");
   const [targetType, setTargetType] = useState("dinner");
   const [mealName, setMealName] = useState("");
@@ -129,6 +94,12 @@ export default function MealPlannerPage() {
     [weekDates, weekOffset]
   );
 
+  const currentWeekDateStrings = useMemo(
+    () => new Set(weekDates.map((d) => formatLocalDate(d))),
+    [weekDates]
+  );
+  const weekStartStr = useMemo(() => formatLocalDate(weekDates[0]), [weekDates]);
+
   useEffect(() => {
     dispatch(fetchMealsFirestore());
     dispatch(fetchGroceryFirestore());
@@ -141,30 +112,74 @@ export default function MealPlannerPage() {
     }
   }, [weekOffset, todayDayName]);
 
-  // Filter meals for current week
+  // Filter meals strictly for the currently viewed week
   const currentWeekMeals = useMemo(() => {
-    return meals.filter((m) =>
-      DAYS_OF_WEEK.some((d) => (m.day || "").toLowerCase() === d.full.toLowerCase())
+    return meals.filter((m) => {
+      // 1. Direct match with any date in the selected week
+      if (m.dateStr && currentWeekDateStrings.has(m.dateStr)) return true;
+      // 2. Legacy week-start match: saved with Monday date of this week
+      if (m.dateStr && m.dateStr === weekStartStr && m.day) {
+        return DAYS_OF_WEEK.some((d) => d.full.toLowerCase() === m.day.toLowerCase());
+      }
+      // 3. Fallback for undated legacy meals ONLY in current week (weekOffset === 0)
+      if (!m.dateStr && weekOffset === 0 && m.day) {
+        return DAYS_OF_WEEK.some((d) => d.full.toLowerCase() === m.day.toLowerCase());
+      }
+      return false;
+    });
+  }, [meals, currentWeekDateStrings, weekStartStr, weekOffset]);
+
+  // Precise helper to find the meal planned for a specific day and meal type
+  const getMealForSlot = (dateObj, dayName, typeId) => {
+    if (!dateObj) return null;
+    const targetDateStr = formatLocalDate(dateObj);
+    const targetTypeClean = (typeId || "").toLowerCase();
+
+    // 1. Direct calendar date match (highest priority)
+    const directMatch = meals.find(
+      (m) =>
+        m.dateStr === targetDateStr &&
+        (m.type || "").toLowerCase() === targetTypeClean
     );
-  }, [meals]);
+    if (directMatch) return directMatch;
+
+    // 2. Legacy week-start match: saved with Monday date of this week
+    const weekStartMonday = formatLocalDate(weekDates[0]);
+    const legacyWeekMatch = meals.find(
+      (m) =>
+        m.dateStr === weekStartMonday &&
+        (m.day || "").toLowerCase() === dayName.toLowerCase() &&
+        (m.type || "").toLowerCase() === targetTypeClean
+    );
+    if (legacyWeekMatch) return legacyWeekMatch;
+
+    // 3. Fallback for undated legacy meals ONLY in current week (weekOffset === 0)
+    if (weekOffset === 0) {
+      const legacyUndated = meals.find(
+        (m) =>
+          !m.dateStr &&
+          (m.day || "").toLowerCase() === dayName.toLowerCase() &&
+          (m.type || "").toLowerCase() === targetTypeClean
+      );
+      if (legacyUndated) return legacyUndated;
+    }
+
+    return null;
+  };
 
   // AI Ingredient Suggestions Fetcher with Request ID Race Condition Protection
-  const handleFetchIngredientsSuggestions = async (dishName, forceRegenerate = false) => {
+  const handleFetchIngredientsSuggestions = async (dishName) => {
     const cleanDish = (dishName || "").trim();
     if (!cleanDish || cleanDish.length < 2) return;
 
     const reqId = ++suggestionRequestIdRef.current;
-    console.log(`[Meal AI UI] Input meal: "${cleanDish}" (Request ID: ${reqId})`);
-
     setIsSuggesting(true);
     setSuggestionError("");
 
     try {
       const res = await suggestIngredients(cleanDish);
 
-      // Protect against stale async response race conditions
       if (suggestionRequestIdRef.current !== reqId) {
-        console.log(`[Meal AI UI] Ignored stale response for "${cleanDish}" (Req ID ${reqId} != ${suggestionRequestIdRef.current})`);
         return;
       }
 
@@ -176,7 +191,6 @@ export default function MealPlannerPage() {
           unit: ing.unit || "",
         }));
 
-        console.log(`[Meal AI UI] Final UI ingredients for "${cleanDish}":`, formatted);
         setIngredientsList(formatted);
         setSuggestedForMealName(cleanDish);
       } else {
@@ -231,22 +245,71 @@ export default function MealPlannerPage() {
     ]);
   };
 
-  const openAddModal = (dayFull = "Monday", typeId = "dinner", mealObj = null) => {
-    // Increment request ID to cancel any in-flight suggestion requests
+  const handleSelectTargetDay = (dayFull) => {
+    setTargetDay(dayFull);
+    const dayIdx = DAYS_OF_WEEK.findIndex((d) => d.full === dayFull);
+    if (dayIdx >= 0 && weekDates[dayIdx]) {
+      setTargetDate(formatLocalDate(weekDates[dayIdx]));
+    }
+  };
+
+  const openAddModal = (
+    dateStrOrDay = null,
+    dayOrType = "Monday",
+    typeId = "dinner",
+    mealObj = null
+  ) => {
     suggestionRequestIdRef.current++;
     setIsSuggesting(false);
     setSuggestionError("");
 
-    if (mealObj) {
-      setEditingMeal(mealObj);
-      setTargetDay(mealObj.day || dayFull);
-      setTargetType((mealObj.type || typeId).toLowerCase());
-      setMealName(mealObj.name || "");
-      setSuggestedForMealName(mealObj.name || "");
+    let resolvedDateStr = formatLocalDate(new Date());
+    let resolvedDayFull = "Monday";
+    let resolvedType = "dinner";
+    let editingItem = null;
 
-      // Normalize existing ingredients into array
-      if (Array.isArray(mealObj.ingredients)) {
-        const parsed = mealObj.ingredients
+    if (dateStrOrDay && typeof dateStrOrDay === "object" && dateStrOrDay.name) {
+      editingItem = dateStrOrDay;
+      resolvedDateStr = editingItem.dateStr || formatLocalDate(new Date());
+      resolvedDayFull = editingItem.day || "Monday";
+      resolvedType = editingItem.type || "dinner";
+    } else {
+      if (typeof dateStrOrDay === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStrOrDay)) {
+        resolvedDateStr = dateStrOrDay;
+        resolvedDayFull = typeof dayOrType === "string" ? dayOrType : "Monday";
+        if (typeof typeId === "string") {
+          resolvedType = typeId;
+          editingItem = mealObj;
+        } else if (typeId && typeof typeId === "object") {
+          editingItem = typeId;
+          resolvedType = editingItem.type || "dinner";
+        }
+      } else if (typeof dateStrOrDay === "string") {
+        resolvedDayFull = dateStrOrDay;
+        resolvedType = typeof dayOrType === "string" ? dayOrType : "dinner";
+        editingItem = typeId && typeof typeId === "object" ? typeId : mealObj;
+        const dIdx = DAYS_OF_WEEK.findIndex((d) => d.full.toLowerCase() === resolvedDayFull.toLowerCase());
+        if (dIdx >= 0 && weekDates[dIdx]) {
+          resolvedDateStr = formatLocalDate(weekDates[dIdx]);
+        }
+      } else {
+        if (weekDates[0]) {
+          resolvedDateStr = formatLocalDate(weekDates[0]);
+          resolvedDayFull = DAYS_OF_WEEK[0].full;
+        }
+      }
+    }
+
+    if (editingItem) {
+      setEditingMeal(editingItem);
+      setTargetDate(editingItem.dateStr || resolvedDateStr);
+      setTargetDay(editingItem.day || resolvedDayFull);
+      setTargetType((editingItem.type || resolvedType).toLowerCase());
+      setMealName(editingItem.name || "");
+      setSuggestedForMealName(editingItem.name || "");
+
+      if (Array.isArray(editingItem.ingredients)) {
+        const parsed = editingItem.ingredients
           .map((ingItem, idx) => {
             const p = parseIngredient(ingItem);
             if (!p) return null;
@@ -264,8 +327,9 @@ export default function MealPlannerPage() {
       }
     } else {
       setEditingMeal(null);
-      setTargetDay(dayFull);
-      setTargetType(typeId.toLowerCase());
+      setTargetDate(resolvedDateStr);
+      setTargetDay(resolvedDayFull);
+      setTargetType(resolvedType.toLowerCase());
       setMealName("");
       setIngredientsList([]);
       setSuggestedForMealName("");
@@ -284,12 +348,14 @@ export default function MealPlannerPage() {
         unit: ing.unit ? String(ing.unit).trim() : "",
       }));
 
+    const finalDateStr = targetDate || formatLocalDate(new Date());
+
     const payload = {
       id: editingMeal ? editingMeal.id : undefined,
       name: mealName.trim(),
-      type: targetType,
+      type: targetType.toLowerCase(),
       day: targetDay,
-      dateStr: weekDates[0].toISOString().slice(0, 10),
+      dateStr: finalDateStr, // Exact calendar date of this meal!
       ingredients: validIngredients,
     };
 
@@ -297,8 +363,19 @@ export default function MealPlannerPage() {
       dispatch(updateMealFirestore(payload));
       setToastMessage("Meal updated");
     } else {
-      dispatch(addMealFirestore(payload));
-      setToastMessage("Meal added to plan");
+      // Check if there is already an existing meal for this exact calendar date and type
+      const existing = meals.find(
+        (m) =>
+          m.dateStr === finalDateStr &&
+          (m.type || "").toLowerCase() === targetType.toLowerCase()
+      );
+      if (existing) {
+        dispatch(updateMealFirestore({ ...payload, id: existing.id }));
+        setToastMessage("Meal updated");
+      } else {
+        dispatch(addMealFirestore(payload));
+        setToastMessage("Meal added to plan");
+      }
     }
 
     setShowAddModal(false);
@@ -313,7 +390,6 @@ export default function MealPlannerPage() {
     setTimeout(() => setToastMessage(""), 2500);
   };
 
-  // Centralized Grocery Action: Collect all ingredients for the selected week
   const handleOpenCentralGroceryModal = () => {
     const aggregated = generateWeeklyGroceryItems(currentWeekMeals);
     setGroceryChecklist(aggregated);
@@ -384,335 +460,385 @@ export default function MealPlannerPage() {
       }
     }
 
-    setToastMessage(`Added ${addedCount} item(s) to Mindo Grocery!`);
+    setToastMessage(`Added ${addedCount} item(s) to Grocery!`);
     setShowGroceryModal(false);
     setTimeout(() => setToastMessage(""), 3000);
   };
 
   return (
-    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-4 max-w-full overflow-x-hidden">
+    <div className="h-full flex flex-col max-w-7xl mx-auto w-full gap-2 sm:gap-2.5 overflow-hidden select-none">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-xl flex items-center gap-2 animate-bounce">
-          <Check className="w-4 h-4" />
+        <div className="fixed top-4 right-4 z-50 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xl flex items-center gap-1.5 animate-bounce">
+          <Check className="w-3.5 h-3.5" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 leading-none">
-            <Utensils className="w-5.5 h-5.5 text-indigo-500" />
-            Meal Planner
-          </h1>
-          <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-            Plan your meals for the week.
-          </p>
+      {/* 1. COMPACT UNIFIED HEADER */}
+      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2 pb-1.5 border-b border-slate-200/60 dark:border-slate-800/60">
+        {/* Top bar on mobile / Left on desktop: Title + Mobile Action buttons */}
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+              <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-tight whitespace-nowrap">
+                Meal Planner
+              </h1>
+              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-none mt-0.5 whitespace-nowrap">
+                Weekly schedule & ingredients
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons on mobile (Grocery & Add Meal) */}
+          <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleOpenCentralGroceryModal}
+              className="inline-flex items-center justify-center gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-indigo-50 hover:text-indigo-600 transition active:scale-95 cursor-pointer shadow-2xs shrink-0"
+              title="Generate Grocery List"
+            >
+              <ShoppingBag className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Grocery</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const dayIndex = DAYS_OF_WEEK.findIndex((d) => d.full === selectedMobileDay);
+                const dObj = DAYS_OF_WEEK[dayIndex >= 0 ? dayIndex : 0];
+                const dateForDay = weekDates[dayIndex >= 0 ? dayIndex : 0];
+                const dateStrForDay = dateForDay ? formatLocalDate(dateForDay) : formatLocalDate(new Date());
+                openAddModal(dateStrForDay, dObj.full, "breakfast");
+              }}
+              className="inline-flex items-center justify-center gap-1 rounded-xl bg-indigo-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition hover:bg-indigo-500 active:scale-95 cursor-pointer shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[3]" />
+              <span>Add</span>
+            </button>
+          </div>
         </div>
 
-        {/* Centralized Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleOpenCentralGroceryModal}
-            className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 px-3.5 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-indigo-50 hover:border-indigo-300 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 transition active:scale-[0.98] cursor-pointer shadow-2xs"
-          >
-            <ShoppingBag className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            <span>🛒 Grocery List</span>
-          </button>
+        {/* Right Actions on desktop / Bottom Row on mobile: Week Controls (+ Desktop Action buttons) */}
+        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 shrink-0">
+          {/* Week Selector Pill */}
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-1 rounded-xl bg-white dark:bg-[#121214] border border-slate-200/80 dark:border-slate-800 p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setWeekOffset((prev) => prev - 1)}
+              className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition cursor-pointer"
+              title="Previous week"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
 
-          <button
-            type="button"
-            onClick={() => openAddModal(todayDayName, "breakfast")}
-            className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-indigo-700 active:scale-[0.98] cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Meal</span>
-          </button>
+            <span className="px-1 text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+              {weekRangeLabel}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setWeekOffset((prev) => prev + 1)}
+              className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition cursor-pointer"
+              title="Next week"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+
+            {weekOffset !== 0 && (
+              <button
+                type="button"
+                onClick={() => setWeekOffset(0)}
+                className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition cursor-pointer"
+              >
+                Today
+              </button>
+            )}
+          </div>
+
+          {/* Action buttons on desktop */}
+          <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Grocery List Central Action */}
+            <button
+              type="button"
+              onClick={handleOpenCentralGroceryModal}
+              className="inline-flex items-center justify-center gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 transition active:scale-95 cursor-pointer shadow-2xs shrink-0"
+              title="Generate Grocery List"
+            >
+              <ShoppingBag className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Grocery List</span>
+            </button>
+
+            {/* Add Meal Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const todayIdx = DAYS_OF_WEEK.findIndex((d) => d.full === todayDayName);
+                const idx = (weekOffset === 0 && todayIdx >= 0) ? todayIdx : 0;
+                const dObj = DAYS_OF_WEEK[idx];
+                const dateForDay = weekDates[idx];
+                const dateStrForDay = dateForDay ? formatLocalDate(dateForDay) : formatLocalDate(new Date());
+                openAddModal(dateStrForDay, dObj.full, "breakfast");
+              }}
+              className="inline-flex items-center justify-center gap-1 rounded-xl bg-indigo-600 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-indigo-500 active:scale-95 cursor-pointer shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5 stroke-[3]" />
+              <span>Add Meal</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Container */}
-      <div className="flex-1 min-h-0 flex flex-col space-y-4 overflow-hidden max-w-full">
-        <div className="bento-card flex-1 min-h-0 flex flex-col !p-4 sm:!p-5 overflow-hidden">
-          {/* WEEK NAVIGATION HEADER */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 shrink-0 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                WEEKLY PLANNER
-              </span>
-            </div>
+      {/* 2. MAIN BENTO CONTAINER */}
+      <div className="bento-card !p-2 sm:!p-3 rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] shadow-2xs">
+        {/* MOBILE 7-DAY SEGMENTED PILLS (Fitted 7-col grid on mobile) */}
+        <div className="grid grid-cols-7 gap-1 pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0 md:hidden">
+          {DAYS_OF_WEEK.map((d, idx) => {
+            const isSelected = selectedMobileDay === d.full;
+            const isToday = d.full === todayDayName && weekOffset === 0;
+            const dateForDay = weekDates[idx];
 
-            {/* Week Controls */}
-            <div className="flex items-center space-x-2">
+            return (
               <button
+                key={d.full}
                 type="button"
-                onClick={() => setWeekOffset((prev) => prev - 1)}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
-                title="Previous week"
+                onClick={() => setSelectedMobileDay(d.full)}
+                className={`flex flex-col items-center justify-center py-1 rounded-xl text-center transition cursor-pointer ${
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-2xs font-bold"
+                    : isToday
+                    ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 font-semibold"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium"
+                }`}
               >
-                <ChevronLeft className="w-4 h-4" />
+                <span className="text-[11px] leading-none">{d.short}</span>
+                {dateForDay && (
+                  <span className={`text-[9px] mt-0.5 leading-none ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                    {dateForDay.getDate()}
+                  </span>
+                )}
               </button>
+            );
+          })}
+        </div>
 
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 min-w-[160px] text-center">
-                {weekRangeLabel}
-              </span>
+        {/* MOBILE SINGLE-DAY VIEW (Compact, scrollable without wasted margins) */}
+        <div className="block md:hidden flex-1 min-h-0 overflow-y-auto space-y-2 pt-2 no-scrollbar">
+          {(() => {
+            const dayIndex = DAYS_OF_WEEK.findIndex((d) => d.full === selectedMobileDay);
+            const dObj = DAYS_OF_WEEK[dayIndex >= 0 ? dayIndex : 0];
+            const dateForDay = weekDates[dayIndex >= 0 ? dayIndex : 0];
+            const isToday = dObj.full === todayDayName && weekOffset === 0;
 
-              <button
-                type="button"
-                onClick={() => setWeekOffset((prev) => prev + 1)}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
-                title="Next week"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-
-              {weekOffset !== 0 && (
-                <button
-                  type="button"
-                  onClick={() => setWeekOffset(0)}
-                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition cursor-pointer"
-                >
-                  Today
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* MOBILE DAY SELECTOR TABS */}
-          <div className="flex md:hidden items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-3 shrink-0 border-b border-slate-100 dark:border-slate-800">
-            {DAYS_OF_WEEK.map((d) => {
-              const isSelected = selectedMobileDay === d.full;
-              const isToday = d.full === todayDayName && weekOffset === 0;
-
-              return (
-                <button
-                  key={d.full}
-                  type="button"
-                  onClick={() => setSelectedMobileDay(d.full)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
-                    isSelected
-                      ? "bg-indigo-600 text-white shadow-xs"
-                      : isToday
-                      ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  {d.short}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* DESKTOP WEEKLY PLANNER TABLE (100% width, NO horizontal scrollbar) */}
-          <div className="hidden md:flex flex-1 min-h-0 flex-col overflow-y-auto">
-            <table className="w-full table-fixed border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  <th className="py-2.5 px-3 w-[16%]">Day</th>
-                  {MEAL_TYPES.map((m) => (
-                    <th key={m.id} className="py-2.5 px-2.5 w-[21%]">
-                      <span className="flex items-center gap-1.5">
-                        <span>{m.icon}</span>
-                        <span>{m.label}</span>
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {DAYS_OF_WEEK.map((dObj, idx) => {
-                  const dayFull = dObj.full;
-                  const dateForDay = weekDates[idx];
-                  const isToday = dayFull === todayDayName && weekOffset === 0;
-
-                  return (
-                    <tr
-                      key={dayFull}
-                      className={`transition-colors ${
-                        isToday
-                          ? "bg-indigo-50/40 dark:bg-indigo-500/10"
-                          : "hover:bg-slate-50/60 dark:hover:bg-[#1a1a1e]/40"
-                      }`}
-                    >
-                      {/* Day Label Cell */}
-                      <td className="py-2.5 px-3 align-middle">
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <span
-                              className={`text-xs font-extrabold uppercase tracking-wider block leading-none ${
-                                isToday
-                                  ? "text-indigo-600 dark:text-indigo-400"
-                                  : "text-slate-800 dark:text-slate-200"
-                              }`}
-                            >
-                              {dObj.short}
-                            </span>
-                            {dateForDay && (
-                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mt-0.5">
-                                {dateForDay.toLocaleDateString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                })}
-                              </span>
-                            )}
-                          </div>
-                          {isToday && (
-                            <span className="text-[8px] font-extrabold uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded-md">
-                              Today
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Meal Columns */}
-                      {MEAL_TYPES.map((mType) => {
-                        const existingMeal = meals.find(
-                          (m) =>
-                            (m.day || "").toLowerCase() === dayFull.toLowerCase() &&
-                            (m.type || "").toLowerCase() === mType.id.toLowerCase()
-                        );
-
-                        return (
-                          <td key={mType.id} className="py-2 px-2 align-middle">
-                            {existingMeal ? (
-                              <div className="group relative rounded-xl border border-slate-200/80 bg-white p-2 dark:border-slate-800 dark:bg-[#121214] flex items-center justify-between gap-1 shadow-2xs">
-                                <span className="text-xs font-bold text-slate-900 dark:text-white truncate flex-1 leading-snug">
-                                  {existingMeal.name}
-                                </span>
-
-                                {/* Compact inline Edit & Delete icons inside cell */}
-                                <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => openAddModal(dayFull, mType.id, existingMeal)}
-                                    className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                                    title="Edit meal"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeletingMeal(existingMeal)}
-                                    className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
-                                    title="Delete meal"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => openAddModal(dayFull, mType.id)}
-                                className="w-full py-1.5 px-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-400 dark:text-slate-500 hover:text-indigo-600 hover:border-indigo-300 dark:hover:text-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition cursor-pointer flex items-center justify-center gap-1 group/btn"
-                              >
-                                <Plus className="w-3 h-3 transition-transform group-hover/btn:scale-110" />
-                                <span>Add meal</span>
-                              </button>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* MOBILE SINGLE-DAY VIEW */}
-          <div className="block md:hidden flex-1 min-h-0 overflow-y-auto space-y-3">
-            {(() => {
-              const dayIndex = DAYS_OF_WEEK.findIndex((d) => d.full === selectedMobileDay);
-              const dObj = DAYS_OF_WEEK[dayIndex >= 0 ? dayIndex : 0];
-              const dateForDay = weekDates[dayIndex >= 0 ? dayIndex : 0];
-              const isToday = dObj.full === todayDayName && weekOffset === 0;
-
-              return (
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
-                        {dObj.full}
-                      </span>
-                      {dateForDay && (
-                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                          · {dateForDay.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                    </div>
-                    {isToday && (
-                      <span className="text-[10px] font-extrabold uppercase bg-indigo-600 text-white px-2 py-0.5 rounded-md">
-                        Today
+            return (
+              <div className="flex flex-col space-y-2">
+                {/* Day Header Strip */}
+                <div className="flex items-center justify-between px-1 text-slate-900 dark:text-white">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold uppercase tracking-wider">
+                      {dObj.full}
+                    </span>
+                    {dateForDay && (
+                      <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                        · {dateForDay.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       </span>
                     )}
                   </div>
+                  {isToday && (
+                    <span className="text-[9px] font-extrabold uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded-md">
+                      Today
+                    </span>
+                  )}
+                </div>
 
-                  <div className="space-y-2.5">
-                    {MEAL_TYPES.map((mType) => {
-                      const existingMeal = meals.find(
-                        (m) =>
-                          (m.day || "").toLowerCase() === dObj.full.toLowerCase() &&
-                          (m.type || "").toLowerCase() === mType.id.toLowerCase()
-                      );
+                {/* 4 Compact Meal Slots */}
+                <div className="space-y-1.5">
+                  {MEAL_TYPES.map((mType) => {
+                    const existingMeal = getMealForSlot(dateForDay, dObj.full, mType.id);
+                    const slotDateStr = dateForDay ? formatLocalDate(dateForDay) : formatLocalDate(new Date());
 
-                      return (
-                        <div
-                          key={mType.id}
-                          className="rounded-2xl border border-slate-200/80 bg-white p-3 dark:border-slate-800 dark:bg-[#121214] shadow-xs relative"
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    return (
+                      <div
+                        key={mType.id}
+                        className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-2 sm:p-2.5 dark:border-slate-800/80 dark:bg-[#16171a] shadow-2xs relative"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60 shrink-0">
                               <span>{mType.icon}</span>
                               <span>{mType.label}</span>
                             </span>
 
-                            {existingMeal && (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => openAddModal(dObj.full, mType.id, existingMeal)}
-                                  className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition cursor-pointer"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingMeal(existingMeal)}
-                                  className="p-1 rounded-md text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            )}
+                            {existingMeal ? (
+                              <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                {existingMeal.name}
+                              </span>
+                            ) : null}
                           </div>
 
                           {existingMeal ? (
-                            <div>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                                {existingMeal.name}
-                              </span>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => openAddModal(slotDateStr, dObj.full, mType.id, existingMeal)}
+                                className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                                title="Edit meal"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeletingMeal(existingMeal)}
+                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
+                                title="Delete meal"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
                             </div>
                           ) : (
                             <button
                               type="button"
-                              onClick={() => openAddModal(dObj.full, mType.id)}
-                              className="w-full py-2 px-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-400 hover:text-indigo-600 hover:border-indigo-300 transition cursor-pointer flex items-center justify-center gap-1.5"
+                              onClick={() => openAddModal(slotDateStr, dObj.full, mType.id)}
+                              className="py-1 px-2.5 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-400 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10 transition cursor-pointer flex items-center gap-1"
                             >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Add meal</span>
+                              <Plus className="w-3 h-3" />
+                              <span>Add</span>
                             </button>
                           )}
                         </div>
+
+                        {/* Ingredients preview chip if exists */}
+                        {existingMeal && Array.isArray(existingMeal.ingredients) && existingMeal.ingredients.length > 0 && (
+                          <div className="mt-1 pl-1 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+                            <span>🥗</span>
+                            <span className="truncate">
+                              {existingMeal.ingredients.map((ing) => (typeof ing === "string" ? ing : ing.name)).filter(Boolean).join(", ")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* DESKTOP WEEKLY PLANNER TABLE (Full height, balanced columns, internal scroll) */}
+        <div className="hidden md:flex flex-1 min-h-0 flex-col overflow-y-auto no-scrollbar">
+          <table className="w-full table-fixed border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <th className="py-2 px-2.5 w-[14%]">Day</th>
+                {MEAL_TYPES.map((m) => (
+                  <th key={m.id} className="py-2 px-2 w-[21.5%]">
+                    <span className="flex items-center gap-1">
+                      <span>{m.icon}</span>
+                      <span>{m.label}</span>
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              {DAYS_OF_WEEK.map((dObj, idx) => {
+                const dayFull = dObj.full;
+                const dateForDay = weekDates[idx];
+                const isToday = dayFull === todayDayName && weekOffset === 0;
+
+                return (
+                  <tr
+                    key={dayFull}
+                    className={`transition-colors ${
+                      isToday
+                        ? "bg-indigo-50/35 dark:bg-indigo-500/10"
+                        : "hover:bg-slate-50/50 dark:hover:bg-[#1a1a1e]/30"
+                    }`}
+                  >
+                    {/* Day Label Cell */}
+                    <td className="py-2 px-2.5 align-middle">
+                      <div className="flex items-center gap-1.5">
+                        <div>
+                          <span
+                            className={`text-xs font-extrabold uppercase tracking-wider block leading-none ${
+                              isToday
+                                ? "text-indigo-600 dark:text-indigo-400"
+                                : "text-slate-800 dark:text-slate-200"
+                            }`}
+                          >
+                            {dObj.short}
+                          </span>
+                          {dateForDay && (
+                            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mt-0.5">
+                              {dateForDay.toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        {isToday && (
+                          <span className="text-[8px] font-extrabold uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded-md">
+                            Today
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Meal Columns */}
+                    {MEAL_TYPES.map((mType) => {
+                      const existingMeal = getMealForSlot(dateForDay, dayFull, mType.id);
+                      const slotDateStr = dateForDay ? formatLocalDate(dateForDay) : formatLocalDate(new Date());
+
+                      return (
+                        <td key={mType.id} className="py-1.5 px-2 align-middle">
+                          {existingMeal ? (
+                            <div className="group relative rounded-xl border border-slate-200/80 bg-white p-1.5 sm:p-2 dark:border-slate-800 dark:bg-[#121214] flex items-center justify-between gap-1 shadow-2xs hover:border-indigo-400/50 transition">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white truncate flex-1 leading-snug">
+                                {existingMeal.name}
+                              </span>
+
+                              {/* Compact inline Edit & Delete icons inside cell */}
+                              <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => openAddModal(slotDateStr, dayFull, mType.id, existingMeal)}
+                                  className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                                  title="Edit meal"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingMeal(existingMeal)}
+                                  className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
+                                  title="Delete meal"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openAddModal(slotDateStr, dayFull, mType.id)}
+                              className="w-full py-1.5 px-2 rounded-xl border border-dashed border-slate-200/90 dark:border-slate-800 text-[11px] font-semibold text-slate-400 hover:text-indigo-600 hover:border-indigo-300 dark:hover:text-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition cursor-pointer flex items-center justify-center gap-1 group/btn"
+                            >
+                              <Plus className="w-3 h-3 transition-transform group-hover/btn:scale-110" />
+                              <span>Add meal</span>
+                            </button>
+                          )}
+                        </td>
                       );
                     })}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -720,49 +846,56 @@ export default function MealPlannerPage() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-xs">
           <div
-            className="w-[calc(100vw-24px)] max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#121214] animate-in fade-in zoom-in-95 duration-150"
+            className="w-[calc(100vw-24px)] max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl dark:border-slate-800 dark:bg-[#121214] animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">
                   {editingMeal ? "Edit Meal" : "Add a meal"}
                 </h2>
                 <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                   {targetDay} · {targetType.charAt(0).toUpperCase() + targetType.slice(1)}
+                  {targetDate ? ` · ${targetDate}` : ""}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-4 py-4">
+            <div className="space-y-3.5 py-3">
               {/* DAY CHIPS SELECTOR */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
                   Day
                 </label>
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                  {DAYS_OF_WEEK.map((d) => {
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
+                  {DAYS_OF_WEEK.map((d, dIdx) => {
                     const isSel = targetDay === d.full;
+                    const dDate = weekDates[dIdx];
                     return (
                       <button
                         key={d.full}
                         type="button"
-                        onClick={() => setTargetDay(d.full)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                        onClick={() => handleSelectTargetDay(d.full)}
+                        className={`px-2.5 py-1 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                           isSel
-                            ? "bg-indigo-600 text-white shadow-xs"
+                            ? "bg-indigo-600 text-white shadow-2xs"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                         }`}
                       >
                         {d.short}
+                        {dDate ? (
+                          <span className={`text-[10px] ml-1 font-medium ${isSel ? "text-white/80" : "text-slate-400"}`}>
+                            {dDate.getDate()}
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -771,10 +904,10 @@ export default function MealPlannerPage() {
 
               {/* MEAL TYPE CHIPS SELECTOR */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                  Meal
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
+                  Meal Type
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {MEAL_TYPES.map((m) => {
                     const isSel = targetType === m.id;
                     return (
@@ -782,9 +915,9 @@ export default function MealPlannerPage() {
                         key={m.id}
                         type="button"
                         onClick={() => setTargetType(m.id)}
-                        className={`py-2 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+                        className={`py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer border ${
                           isSel
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-2xs"
                             : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                         }`}
                       >
@@ -798,7 +931,7 @@ export default function MealPlannerPage() {
 
               {/* WHAT ARE YOU HAVING? */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
                   What are you having?
                 </label>
                 <input
@@ -811,23 +944,23 @@ export default function MealPlannerPage() {
                       handleSaveMeal();
                     }
                   }}
-                  placeholder="e.g. Oatmeal + banana, Chicken pasta"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-[#1a1a1e] dark:text-white"
+                  placeholder="e.g. Oatmeal + banana, Grilled chicken"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-[#1a1a1e] dark:text-white"
                   autoFocus
                 />
 
                 {/* Quick suggestions */}
-                <div className="mt-3">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">
+                <div className="mt-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                     Quick ideas
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1">
                     {QUICK_MEALS.map((idea) => (
                       <button
                         key={idea}
                         type="button"
                         onClick={() => setMealName(idea)}
-                        className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 transition cursor-pointer"
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 text-[11px] font-semibold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400 transition cursor-pointer"
                       >
                         + {idea}
                       </button>
@@ -839,13 +972,13 @@ export default function MealPlannerPage() {
               {/* AI INGREDIENTS SECTION */}
               <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Ingredients
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                    <Wand2 className="w-3 h-3 text-indigo-500" /> Ingredients
                   </span>
                   {mealName.trim().length >= 2 && (
                     <button
                       type="button"
-                      onClick={() => handleFetchIngredientsSuggestions(mealName, true)}
+                      onClick={() => handleFetchIngredientsSuggestions(mealName)}
                       disabled={isSuggesting}
                       className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-40"
                     >
@@ -857,15 +990,15 @@ export default function MealPlannerPage() {
 
                 {/* Loading state */}
                 {isSuggesting && (
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 dark:border-indigo-900/40 dark:bg-indigo-950/30 p-2.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-2 animate-pulse">
-                    <Sparkles className="w-4 h-4 animate-spin text-indigo-500 shrink-0" />
+                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 dark:border-indigo-900/40 dark:bg-indigo-950/30 p-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-2 animate-pulse">
+                    <Wand2 className="w-3.5 h-3.5 animate-spin text-indigo-500 shrink-0" />
                     <span>Finding ingredients for "{mealName}"...</span>
                   </div>
                 )}
 
                 {/* Error state */}
                 {suggestionError && !isSuggesting && (
-                  <div className="rounded-xl border border-rose-100 bg-rose-50/50 dark:border-rose-900/40 dark:bg-rose-950/20 p-2.5 text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center justify-between">
+                  <div className="rounded-xl border border-rose-100 bg-rose-50/50 dark:border-rose-900/40 dark:bg-rose-950/20 p-2 text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center justify-between">
                     <span>{suggestionError}</span>
                     <button
                       type="button"
@@ -879,32 +1012,32 @@ export default function MealPlannerPage() {
 
                 {/* Suggested/Editable Ingredients List */}
                 {!isSuggesting && ingredientsList.length > 0 && (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 py-1">
+                  <div className="space-y-1 max-h-40 overflow-y-auto pr-1 py-1 no-scrollbar">
                     {ingredientsList.map((ing) => (
                       <div
                         key={ing.id}
-                        className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50 p-1.5 dark:border-slate-800 dark:bg-[#1a1a1e]"
+                        className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50 p-1 dark:border-slate-800 dark:bg-[#1a1a1e]"
                       >
                         <input
                           type="text"
                           value={ing.name}
                           onChange={(e) => updateIngredientField(ing.id, "name", e.target.value)}
                           placeholder="Ingredient name"
-                          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                         />
                         <input
                           type="text"
                           value={ing.quantity}
                           onChange={(e) => updateIngredientField(ing.id, "quantity", e.target.value)}
                           placeholder="Qty"
-                          className="w-11 sm:w-14 rounded-lg border border-slate-200 bg-white px-1 py-1 text-center text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white shrink-0"
+                          className="w-10 sm:w-12 rounded-lg border border-slate-200 bg-white px-1 py-0.5 text-center text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white shrink-0"
                         />
                         <input
                           type="text"
                           value={ing.unit}
                           onChange={(e) => updateIngredientField(ing.id, "unit", e.target.value)}
                           placeholder="Unit"
-                          className="w-12 sm:w-16 rounded-lg border border-slate-200 bg-white px-1 py-1 text-center text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white shrink-0"
+                          className="w-11 sm:w-14 rounded-lg border border-slate-200 bg-white px-1 py-0.5 text-center text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white shrink-0"
                         />
                         <button
                           type="button"
@@ -912,7 +1045,7 @@ export default function MealPlannerPage() {
                           className="p-1 text-slate-400 hover:text-rose-500 rounded-lg cursor-pointer shrink-0"
                           title="Remove ingredient"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
@@ -921,8 +1054,8 @@ export default function MealPlannerPage() {
 
                 {/* Empty State */}
                 {!isSuggesting && ingredientsList.length === 0 && !suggestionError && (
-                  <div className="text-[11px] text-slate-400 italic py-1">
-                    Type a dish name above to auto-suggest ingredients, or add them manually below.
+                  <div className="text-[10px] text-slate-400 italic py-0.5">
+                    Type a dish name above to auto-suggest ingredients, or add manually below.
                   </div>
                 )}
 
@@ -930,20 +1063,20 @@ export default function MealPlannerPage() {
                 <button
                   type="button"
                   onClick={handleAddEmptyIngredientRow}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline pt-0.5 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline pt-0.5 cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-3 h-3" />
                   <span>Add ingredient</span>
                 </button>
               </div>
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end space-x-2 pt-2.5 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                className="px-3.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -951,7 +1084,7 @@ export default function MealPlannerPage() {
                 type="button"
                 onClick={handleSaveMeal}
                 disabled={!mealName.trim()}
-                className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl transition cursor-pointer shadow-xs"
+                className="px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl transition cursor-pointer shadow-2xs"
               >
                 {editingMeal ? "Save Changes" : "Add Meal"}
               </button>
@@ -964,28 +1097,28 @@ export default function MealPlannerPage() {
       {deletingMeal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-xs">
           <div
-            className="w-[calc(100vw-24px)] max-w-sm rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#121214]"
+            className="w-[calc(100vw-24px)] max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-[#121214]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
               Delete this meal?
             </h2>
-            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
               {deletingMeal.name}
             </p>
 
-            <div className="flex items-center justify-end space-x-2 pt-4 mt-2">
+            <div className="flex items-center justify-end space-x-2 pt-3 mt-1">
               <button
                 type="button"
                 onClick={() => setDeletingMeal(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteMeal}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition cursor-pointer shadow-xs"
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition cursor-pointer shadow-2xs"
               >
                 Delete
               </button>
@@ -998,18 +1131,18 @@ export default function MealPlannerPage() {
       {showGroceryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-xs">
           <div
-            className="w-[calc(100vw-24px)] max-w-lg rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#121214] animate-in fade-in zoom-in-95 duration-150"
+            className="w-[calc(100vw-24px)] max-w-lg rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl dark:border-slate-800 dark:bg-[#121214] animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <ShoppingBag className="w-4 h-4 text-indigo-500" />
                   Weekly Grocery List
                 </h2>
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Ingredients collected from all planned meals for this week
+                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  Ingredients collected from planned meals for this week
                 </span>
               </div>
               <button
@@ -1017,12 +1150,12 @@ export default function MealPlannerPage() {
                 onClick={() => setShowGroceryModal(false)}
                 className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Checklist items */}
-            <div className="space-y-2.5 py-4 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-2 py-3 max-h-72 overflow-y-auto pr-1 no-scrollbar">
               {groceryChecklist.length === 0 ? (
                 <div className="p-4 text-center text-xs text-slate-400">
                   No ingredients found for planned meals this week. You can add items below manually.
@@ -1031,14 +1164,14 @@ export default function MealPlannerPage() {
                 groceryChecklist.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50 p-2.5 text-xs font-semibold dark:border-slate-800 dark:bg-[#1a1a1e] gap-2"
+                    className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50 p-2 text-xs font-semibold dark:border-slate-800 dark:bg-[#1a1a1e] gap-2"
                   >
                     <div
                       onClick={() => handleToggleGroceryItem(item.id)}
-                      className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
+                      className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
                     >
                       <div
-                        className={`h-5 w-5 rounded-md flex items-center justify-center text-xs font-bold shrink-0 transition ${
+                        className={`h-4.5 w-4.5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 transition ${
                           item.checked
                             ? "bg-indigo-600 text-white"
                             : "border border-slate-300 dark:border-slate-700 text-transparent"
@@ -1051,7 +1184,7 @@ export default function MealPlannerPage() {
                           {item.name}
                         </span>
                         {item.sources && item.sources.length > 0 && (
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal block truncate">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal block truncate">
                             From: {item.sources.join(", ")}
                           </span>
                         )}
@@ -1063,7 +1196,7 @@ export default function MealPlannerPage() {
                       type="text"
                       value={item.displayQty}
                       onChange={(e) => handleUpdateGroceryQty(item.id, e.target.value)}
-                      className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center text-xs font-bold text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 shrink-0"
+                      className="w-16 rounded-lg border border-slate-200 bg-white px-1.5 py-0.5 text-center text-xs font-bold text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 shrink-0"
                     />
 
                     {/* Delete item */}
@@ -1079,7 +1212,7 @@ export default function MealPlannerPage() {
               )}
 
               {/* Add Custom Ingredient Row */}
-              <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <input
                   type="text"
                   value={customGroceryName}
@@ -1090,21 +1223,21 @@ export default function MealPlannerPage() {
                       handleAddCustomGroceryItem();
                     }
                   }}
-                  placeholder="Add item..."
-                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 outline-none dark:border-slate-800 dark:bg-[#1a1a1e] dark:text-white"
+                  placeholder="Add custom item..."
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-900 outline-none dark:border-slate-800 dark:bg-[#1a1a1e] dark:text-white"
                 />
                 <input
                   type="text"
                   value={customGroceryQty}
                   onChange={(e) => setCustomGroceryQty(e.target.value)}
                   placeholder="Qty"
-                  className="w-16 rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-semibold text-center text-slate-900 outline-none dark:border-slate-800 dark:bg-[#1a1a1e] dark:text-white"
+                  className="w-14 rounded-xl border border-slate-200 bg-slate-50 px-1.5 py-1 text-xs font-semibold text-center text-slate-900 outline-none dark:border-slate-800 dark:bg-[#1a1a1e] dark:text-white"
                 />
                 <button
                   type="button"
                   onClick={handleAddCustomGroceryItem}
                   disabled={!customGroceryName.trim()}
-                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 cursor-pointer shrink-0"
+                  className="px-2.5 py-1 text-xs font-bold rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 cursor-pointer shrink-0"
                 >
                   + Add
                 </button>
@@ -1112,11 +1245,11 @@ export default function MealPlannerPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end space-x-2 pt-2.5 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowGroceryModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                className="px-3.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -1124,9 +1257,9 @@ export default function MealPlannerPage() {
                 type="button"
                 onClick={handlePushSelectedToMindoGrocery}
                 disabled={!groceryChecklist.some((i) => i.checked)}
-                className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl transition cursor-pointer shadow-xs"
+                className="px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl transition cursor-pointer shadow-2xs"
               >
-                Add Selected to Grocery
+                Add to Grocery
               </button>
             </div>
           </div>

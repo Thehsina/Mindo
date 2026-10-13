@@ -1,4 +1,4 @@
-import { formatDue } from "../utils/dateUtils";
+import { formatDue, isSameCalendarDate, formatTaskTime } from "../utils/dateUtils";
 
 // Helper date parsing
 const addDays = (date, days) => {
@@ -30,9 +30,10 @@ export const getWeekdayFull = (d = new Date()) => {
   return DAYS_FULL[d.getDay()];
 };
 
-export const parseNaturalDate = (text = "") => {
-  const normalized = text.toLowerCase();
+export const parseNaturalDate = (text = "", activeContextDate = null) => {
+  const normalized = (text || "").toLowerCase();
   const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
 
   let targetDate = now;
   let label = "Today";
@@ -40,9 +41,12 @@ export const parseNaturalDate = (text = "") => {
   if (/\btodays?\b|\btoday's\b|\btonight\b|\bthis evening\b/.test(normalized)) {
     targetDate = now;
     label = "Today";
-  } else if (/\btomorrows?\b|\btomorrow's\b/.test(normalized)) {
+  } else if (/\btomorrows?\b|\btomorrow's\b|\btomorros\b|\btomowrow\b/.test(normalized)) {
     targetDate = addDays(now, 1);
     label = "Tomorrow";
+  } else if (/\byesterdays?\b|\byesterday's\b/.test(normalized)) {
+    targetDate = addDays(now, -1);
+    label = "Yesterday";
   } else if (/\bnext week\b|\bthis week\b/.test(normalized)) {
     targetDate = addDays(now, 7);
     label = "Next week";
@@ -64,9 +68,16 @@ export const parseNaturalDate = (text = "") => {
       if (targetIdx !== undefined) {
         const currentIdx = now.getDay();
         let diff = targetIdx - currentIdx;
-        if (diff < 0) diff += 7;
+        if (diff <= 0) diff += 7;
         targetDate = addDays(now, diff);
         label = DAYS_FULL[targetDate.getDay()];
+      }
+    } else if (activeContextDate && activeContextDate !== todayStr) {
+      const parts = activeContextDate.split("-").map(Number);
+      if (parts.length === 3) {
+        targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        const tomorrowStr = addDays(now, 1).toISOString().slice(0, 10);
+        label = activeContextDate === tomorrowStr ? "Tomorrow" : activeContextDate;
       }
     }
   }
@@ -137,10 +148,14 @@ export const inferIncomeCategory = (text = "") => {
 };
 
 const cleanTitle = (text = "") => {
-  return text
-    .replace(/^(add|put|remind me to|i spent|spent|paid|received|got|i got|remember that|note:?|plan|mark|create a task to|add a task to|add task to)\s+/i, "")
+  let cleaned = text
+    .replace(/^(i\s+(want|need|have|should|must|would\s+like)\s+to|going\s+to|have\s+to|got\s+to|plan\s+to|need\s+to)\s+/i, "")
+    .replace(/^(add|put|remind me to|i spent|spent|paid|received|got|i got|remember that|note:?|plan|mark|create a task to|add a task to|add task to|just add to task|just add it to task|no just add to task|add to task)\s+/i, "")
     .replace(/\s+(for|at|on|in|to)\s+(groceries|grocery list|tasks|meal planner|notes|reminders)$/i, "")
+    .replace(/\s+(tomorrow|today|next week|this week)$/i, "")
     .trim();
+
+  return cleaned || text;
 };
 
 export const splitMultiCommands = (rawText = "") => {
@@ -165,12 +180,42 @@ export const splitMultiCommands = (rawText = "") => {
   return clauses.length > 0 ? clauses : [rawText.trim()];
 };
 
+export const isCasualConversation = (text = "") => {
+  const clean = (text || "").toLowerCase().trim();
+  if (!clean) return false;
+
+  // Must NOT be a data query or action request
+  if (
+    /(plan|task|meal|dinner|lunch|breakfast|snack|grocery|note|reminder|schedule|agenda|add|create|delete|remove|show|what|where|how|when|who|is there|do i have|overdue|appointment|check)/i.test(
+      clean
+    )
+  ) {
+    return false;
+  }
+
+  return /^(thanks|thank\s+you|thx|ok\s+thanks|okay\s+thanks|got\s+it|okay|ok|great|perfect|alright|nice|cool|sounds?\s+good|that'?s?\s+good|sweet|awesome|yes|yeah|yep|sure|hi|hello|hey|good\s+morning|good\s+afternoon|good\s+evening)[\s!\.]*$/i.test(
+    clean
+  );
+};
+
 /**
- * LEVEL 1: GREETING & AFFIRMATIVE HANDLER
+ * LEVEL 1: GREETING & CASUAL CONVERSATION HANDLER
  */
 export const handleGreeting = (text = "") => {
   const lower = text.toLowerCase().trim();
 
+  if (/\b(thanks|thank\s+you|thx|ok\s+thanks|okay\s+thanks)\b/i.test(lower)) {
+    return "You're very welcome! 😊";
+  }
+  if (/^(got\s+it)[\s!\.]*$/i.test(lower)) {
+    return "Great! 👍";
+  }
+  if (/^(perfect|nice|cool|sounds?\s+good|that'?s?\s+good|sweet|awesome)[\s!\.]*$/i.test(lower)) {
+    return "Glad that helps! 😊";
+  }
+  if (/^(okay|ok|alright|sure|yes|yeah|yep)[\s!\.]*$/i.test(lower)) {
+    return "Let me know if you need anything else! 😊";
+  }
   if (/\b(good morning|morning)\b/i.test(lower)) {
     return "Good morning! ☀️ What would you like to check or plan today?";
   }
@@ -183,14 +228,8 @@ export const handleGreeting = (text = "") => {
   if (/\b(how are you|how's it going)\b/i.test(lower)) {
     return "I'm doing great and ready to help! What's on your mind today?";
   }
-  if (/\b(thanks|thank you|thx)\b/i.test(lower)) {
-    return "You're very welcome! Let me know if you need anything else.";
-  }
-  if (/^(yes|yeah|sure|yep|okay|ok|sounds good|cool)[\s!\.]*$/i.test(lower)) {
-    return "Great! 👋 What would you like to check, plan, or add next?";
-  }
 
-  return "Hi! 👋 What can I help you with today?";
+  return "Hi! 👋 How can I help you today?";
 };
 
 // Helper to extract clean meal dish name
@@ -225,7 +264,7 @@ const handleTodayQuery = (dateInfo, contextData) => {
   const targetDay = dateInfo.weekday || "Monday";
   const weekStart = dateInfo.weekStartStr || getStartOfWeek();
 
-  const dayTasks = tasks.filter((t) => !t.completed && (t.dueDate === dateInfo.dateStr || (!t.dueDate && dateInfo.label === "Today")));
+  const dayTasks = tasks.filter((t) => !t.completed && (isSameCalendarDate(t.dueDate, dateInfo.dateStr) || (!t.dueDate && dateInfo.label === "Today")));
   const dayMeals = meals.filter((m) => (m.day || "").toLowerCase() === targetDay.toLowerCase() && (!m.dateStr || m.dateStr === weekStart));
   const dayReminders = (reminders || []).filter((r) => r.date === dateInfo.dateStr || r.scheduledAt?.startsWith(dateInfo.dateStr));
 
@@ -236,7 +275,10 @@ const handleTodayQuery = (dateInfo, contextData) => {
 
   const parts = [];
   if (dayTasks.length > 0) {
-    parts.push(`📌 Tasks (${dayTasks.length}):\n` + dayTasks.map((t) => `• ${t.title}`).join("\n"));
+    parts.push(`📌 Tasks (${dayTasks.length}):\n` + dayTasks.map((t) => {
+      const timeStr = formatTaskTime(t.dueDate);
+      return timeStr ? `• ${t.title} (${timeStr})` : `• ${t.title}`;
+    }).join("\n"));
   }
   if (dayReminders.length > 0) {
     parts.push(`🔔 Reminders (${dayReminders.length}):\n` + dayReminders.map((r) => `• ${r.title} — ${r.time || "09:00"}`).join("\n"));
@@ -277,11 +319,14 @@ const handleTasksQuery = (dateInfo, text, contextData) => {
     return `⚠️ Overdue Tasks (${overdueTasks.length}):\n\n` + overdueTasks.map((t) => `• ${t.title} (Due: ${t.dueDate})`).join("\n");
   }
 
-  const dayTasks = tasks.filter((t) => !t.completed && (t.dueDate === dateInfo.dateStr || (!t.dueDate && dateInfo.label === "Today")));
+  const dayTasks = tasks.filter((t) => !t.completed && (isSameCalendarDate(t.dueDate, dateInfo.dateStr) || (!t.dueDate && dateInfo.label === "Today")));
   if (dayTasks.length === 0) {
     return `You don't have any tasks scheduled for ${dateInfo.label}.`;
   }
-  return `📋 Tasks for ${dateInfo.label} (${dayTasks.length}):\n\n` + dayTasks.map((t) => `• ${t.title}`).join("\n");
+  return `📋 Tasks for ${dateInfo.label} (${dayTasks.length}):\n\n` + dayTasks.map((t) => {
+    const timeStr = formatTaskTime(t.dueDate);
+    return timeStr ? `• ${t.title} (${timeStr})` : `• ${t.title}`;
+  }).join("\n");
 };
 
 // QUERY_APPOINTMENTS Handler ("doctor appointment", "dentist appointment")
@@ -308,12 +353,13 @@ const handleAppointmentsQuery = (dateInfo, contextData) => {
 // QUERY_MEALS Handler ("what's for dinner", "todays meals")
 const handleMealsQuery = (dateInfo, text = "", contextData = {}) => {
   const { meals = [] } = contextData;
-  const targetDay = dateInfo.weekday || "Monday";
-  const weekStart = dateInfo.weekStartStr || getStartOfWeek();
+  const targetDateStr = dateInfo.dateStr || new Date().toISOString().slice(0, 10);
+  const targetDay = dateInfo.weekday || getWeekdayName(targetDateStr);
+  const weekStart = dateInfo.weekStartStr || getStartOfWeek(targetDateStr);
 
   const dayMeals = (meals || []).filter((m) => {
     const matchDay = (m.day || "").toLowerCase() === targetDay.toLowerCase();
-    const matchWeek = m.dateStr ? m.dateStr === weekStart : true;
+    const matchWeek = !m.dateStr || m.dateStr === weekStart || isSameCalendarDate(m.dateStr, targetDateStr) || isSameCalendarDate(m.dateStr, weekStart);
     return matchDay && matchWeek;
   });
 
@@ -328,9 +374,9 @@ const handleMealsQuery = (dateInfo, text = "", contextData = {}) => {
     const specificMeal = dayMeals.find((m) => (m.type || "").toLowerCase() === requestedType);
     if (specificMeal) {
       if (dateInfo.label === "Today" && requestedType === "dinner") {
-        return `Tonight's dinner is ${specificMeal.name}. 🍓`;
+        return `Tonight's dinner is **${specificMeal.name}**. 🍽`;
       }
-      return `${dateInfo.label === "Today" ? "Today" : dateInfo.label}'s ${requestedType} is ${specificMeal.name}. 🍽`;
+      return `${dateInfo.label === "Today" ? "Today" : dateInfo.label}'s ${requestedType} is **${specificMeal.name}**. 🍽`;
     } else {
       return `You don't have ${requestedType} planned for ${dateInfo.label}.`;
     }
@@ -339,7 +385,7 @@ const handleMealsQuery = (dateInfo, text = "", contextData = {}) => {
   if (dayMeals.length === 0) {
     return `No meals are currently planned for ${dateInfo.label}.`;
   }
-  return `🍽 Planned Meals for ${dateInfo.label}:\n\n` + dayMeals.map((m) => `• ${m.type ? m.type.toUpperCase() : "MEAL"}: ${m.name}`).join("\n");
+  return `🍽 Planned Meals for ${dateInfo.label}:\n\n` + dayMeals.map((m) => `• ${m.type ? m.type.toUpperCase() : "MEAL"}: **${m.name}**`).join("\n");
 };
 
 // QUERY_GROCERIES Handler ("what groceries do i need", "grocery list")
@@ -416,11 +462,37 @@ export const evaluateQueryIntent = (text = "", contextData = {}) => {
   const lower = text.toLowerCase().trim();
   const dateInfo = parseNaturalDate(text);
 
+  // 0. CORRECTION HANDLING ("you wrong go to studio is there", "you missed my studio task")
+  const isCorrection = /(you wrong|you're wrong|you missed|already there|is there|wrong go to|you got it wrong|missed my)/i.test(lower);
+  if (isCorrection) {
+    const tasks = contextData.tasks || [];
+    const cleanSearch = lower
+      .replace(/(you|are|wrong|go|to|is|there|you're|missed|my|the|task|already|checked|again)/gi, "")
+      .trim();
+
+    const searchKeyword = cleanSearch.length >= 2 ? cleanSearch : "studio";
+    const matchedTask =
+      tasks.find((t) => (t.title || "").toLowerCase().includes(searchKeyword)) ||
+      tasks.find((t) => t.dueDate === dateInfo.dateStr || !t.dueDate);
+
+    if (matchedTask) {
+      return {
+        queryType: "QUERY_TASKS",
+        answer: `You're right — I missed that task. You have **${matchedTask.title}** planned for ${dateInfo.label} (${matchedTask.dueDate || dateInfo.dateStr}).`,
+      };
+    } else {
+      return {
+        queryType: "QUERY_TASKS",
+        answer: `I re-checked your list for ${dateInfo.label}, but I couldn't find a task matching "${searchKeyword}".`,
+      };
+    }
+  }
+
   // LEVEL 2 QUERY TYPE MATCHING
 
-  // 1. QUERY_TODAY / QUERY_PLAN ("todays plan", "today's plan", "today plan", "what is my plan today", "what's my plan today", "today schedule", "my plan today")
+  // 1. QUERY_TODAY / QUERY_PLAN ("todays plan", "today's plan", "today plan", "what is my plan today", "what's my plan today", "today schedule", "my plan today", "tomorrow", "friday")
   if (
-    /(plan|schedule|agenda|overview|what do i have|what's happening|anything planned|show today's plan|show todays plan|my plan)/i.test(lower) &&
+    /(plan|schedule|agenda|overview|what do i have|what's happening|anything planned|show today's plan|show todays plan|my plan|what about|any plan)/i.test(lower) &&
     /(today|todays|today's|tomorrow|tomorrows|tomorrow's|friday|monday|tuesday|wednesday|thursday|saturday|sunday|week)/i.test(lower)
   ) {
     return { queryType: "QUERY_TODAY", answer: handleTodayQuery(dateInfo, contextData) };
@@ -466,13 +538,20 @@ export const evaluateQueryIntent = (text = "", contextData = {}) => {
     return { queryType: "QUERY_NOTES", answer: handleNotesQuery(text, contextData) };
   }
 
-  // Fallback QUERY_TODAY for generic plan requests
-  return { queryType: "QUERY_TODAY", answer: handleTodayQuery(dateInfo, contextData) };
+  // Fallback QUERY_TODAY ONLY for explicit plan requests or date-only inputs
+  if (
+    /^(today|todays|today's|tomorrow|tomorrows|tomorrow's|yesterday|yesterdays|yesterday's|next week|this week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i.test(lower) ||
+    /(plan|schedule|agenda|what do i have|anything planned)/i.test(lower)
+  ) {
+    return { queryType: "QUERY_TODAY", answer: handleTodayQuery(dateInfo, contextData) };
+  }
+
+  return { queryType: "CASUAL_CONVERSATION", answer: handleGreeting(text) };
 };
 
 /**
  * TOP-LEVEL INTENT CLASSIFIER & ROUTER
- * Stage 1: Classifies Level 1 Intent (GREETING, QUERY, CREATE, UNKNOWN)
+ * Stage 1: Classifies Level 1 Intent (GREETING/CASUAL, QUERY, CREATE, UNKNOWN)
  * Stage 2: Classifies Level 2 Type (QUERY_TODAY, QUERY_TASKS, CREATE_TASK, etc.)
  */
 export const parseSingleCommand = (text = "", contextData = {}) => {
@@ -481,16 +560,12 @@ export const parseSingleCommand = (text = "", contextData = {}) => {
 
   const lower = trimmed.toLowerCase();
 
-  // LEVEL 1 — GREETING / AFFIRMATIVE CHECK
-  const isGreeting =
-    /^(hi|hello|hey|hey mindo|hi mindo|hello mindo|good morning|good afternoon|good evening|how are you|whats up|sup|thanks|thank you|yes|yeah|sure|yep|okay|ok|sounds good|cool)[\s!\.]*$/i.test(lower) ||
-    /^(good morning|good afternoon|good evening|how are you|hey mindo|hi mindo)$/i.test(lower);
-
-  if (isGreeting) {
+  // LEVEL 1 — GREETING / CASUAL CONVERSATION CHECK
+  if (isCasualConversation(trimmed)) {
     const answer = handleGreeting(trimmed);
     console.log("[CommandCenter Router]", {
       input: trimmed,
-      topIntent: "GREETING",
+      topIntent: "CASUAL_CONVERSATION",
       entity: "CONVERSATION",
       actionOrQuery: "QUERY",
       confidence: 1.0,
@@ -498,7 +573,7 @@ export const parseSingleCommand = (text = "", contextData = {}) => {
     });
     return {
       type: "query",
-      intent: "GREETING",
+      intent: "CASUAL_CONVERSATION",
       confidence: 1.0,
       answer,
       entities: { raw: trimmed },
@@ -517,8 +592,12 @@ export const parseSingleCommand = (text = "", contextData = {}) => {
     /(^|\s)(what|which|where|when|how|how much|how many|do i|do i have|what's|what is|can you show|show me|tell me|any|list|pending|overdue|is there|did i|show today's|what about)\b/i.test(lower) ||
     /\?/i.test(lower);
 
-  // If input is a query domain OR question pattern AND has NO write action verb $\rightarrow$ LEVEL 1: QUERY (READ-ONLY)
-  if ((isQueryDomain || isQuestionPattern) && !hasWriteActionVerb) {
+  const isStandaloneDate = /^(today|todays|today's|tomorrow|tomorrows|tomorrow's|yesterday|yesterdays|yesterday's|next week|this week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thurs|fri|sat|sun)$/i.test(lower);
+
+  const isCorrection = /(you wrong|you're wrong|you missed|already there|is there|wrong go to|you got it wrong|missed my)/i.test(lower);
+
+  // If input is a query domain OR question pattern OR standalone date OR correction AND has NO write action verb -> LEVEL 1: QUERY (READ-ONLY)
+  if ((isQueryDomain || isQuestionPattern || isStandaloneDate || isCorrection) && !hasWriteActionVerb) {
     const { queryType, answer } = evaluateQueryIntent(trimmed, contextData);
     console.log("[CommandCenter Router]", {
       input: trimmed,
@@ -739,12 +818,16 @@ export const parseSingleCommand = (text = "", contextData = {}) => {
     };
   }
 
-  // H. EXPLICIT TASK CREATE (Requires explicit write verbs: "add task", "create task", "make a task")
-  const isExplicitTaskAction = /^(add|create|make|buy|finish|call|schedule|book|renew|clean)\s+/i.test(lower) || /^(add task|create task)/i.test(lower);
+  // H. CONVERSATIONAL TASK CREATE
+  const isTaskStatement =
+    /^(i\s+(want|need|have|should|must|would\s+like)\s+to|going\s+to|have\s+to|got\s+to|plan\s+to|need\s+to)\s+/i.test(lower) ||
+    /\b(on\s+my\s+tasks|to\s+my\s+tasks|to\s+tasks|add\s+to\s+task|just\s+add|put\s+on\s+tasks|doctor|appointment|meeting|workout|gym)\b/i.test(lower) ||
+    /^(add|create|make|buy|finish|call|schedule|book|renew|clean|go\s+to|visit)\s+/i.test(lower) ||
+    /^(add task|create task|put on task)/i.test(lower);
 
-  if (isExplicitTaskAction && hasWriteActionVerb) {
+  if (isTaskStatement && !isQuestionPattern) {
     let taskTitle = cleanTitle(trimmed);
-    if (!taskTitle) taskTitle = trimmed;
+    if (!taskTitle || taskTitle.length < 2) taskTitle = trimmed;
 
     console.log("[CommandCenter Router]", { input: trimmed, topIntent: "CREATE", entity: "TASK", actionOrQuery: "ACTION", confidence: 0.9, finalRoute: "createTask" });
     return {
@@ -761,29 +844,127 @@ export const parseSingleCommand = (text = "", contextData = {}) => {
     };
   }
 
-  // LEVEL 1 — UNKNOWN / CONVERSATIONAL FALLBACK (CRITICAL: NEVER DEFAULT TO CREATE_TASK!)
-  console.log("[CommandCenter Router]", { input: trimmed, topIntent: "UNKNOWN", actionOrQuery: "QUERY", confidence: 0.3, finalRoute: "conversationalFallback" });
+  // LEVEL 1 — CONVERSATIONAL FALLBACK (Only for explicit "what can you do" or non-action inputs)
+  if (/\b(what\s+can\s+you|help|features|capabilities|how\s+to\s+use)\b/i.test(lower)) {
+    return {
+      type: "query",
+      intent: "CAPABILITY_QUERY",
+      confidence: 0.9,
+      answer: "I can help you check your schedule, manage tasks, groceries, meals, habits, reminders, notes, and money. What would you like to check or plan?",
+      entities: { raw: trimmed },
+    };
+  }
+
+  // Generic Fallback: If no write action verb or fallback title is a date reference, evaluate as query
+  if (!hasWriteActionVerb) {
+    const { queryType, answer } = evaluateQueryIntent(trimmed, contextData);
+    return {
+      type: "query",
+      intent: queryType,
+      confidence: 0.8,
+      answer,
+      entities: { raw: trimmed },
+    };
+  }
+
+  let fallbackTitle = cleanTitle(trimmed);
+  if (!fallbackTitle || /^(tomorrow|today|yesterday|next week|this week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i.test(fallbackTitle)) {
+    const { queryType, answer } = evaluateQueryIntent(trimmed, contextData);
+    return {
+      type: "query",
+      intent: queryType,
+      confidence: 0.8,
+      answer,
+      entities: { raw: trimmed },
+    };
+  }
+
   return {
-    type: "query",
-    intent: "UNKNOWN",
-    confidence: 0.3,
-    answer: "I can help you check your schedule, manage tasks, groceries, meals, habits, reminders, notes, and money. What would you like to check or plan?",
-    entities: { raw: trimmed },
+    type: "task",
+    intent: "TASK_CREATE",
+    confidence: 0.75,
+    entities: {
+      title: fallbackTitle.charAt(0).toUpperCase() + fallbackTitle.slice(1),
+      dueDate: dateInfo.dateStr,
+      dueDateLabel: dateInfo.label,
+      priority: "Medium",
+      category: "Personal",
+    },
   };
 };
+
+export function resolveSamConversationContext(chatHistory = [], todayStr = new Date().toISOString().slice(0, 10)) {
+  const now = new Date(todayStr + "T00:00:00");
+
+  const addDaysStr = (dStr, n) => {
+    const d = new Date(dStr + "T00:00:00");
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+
+  let activeDate = todayStr;
+  let activeDateLabel = "Today";
+  let activeIntent = "QUERY_DAILY_PLAN";
+  let recentTopic = "daily plan";
+
+  const recentMsgs = (chatHistory || [])
+    .filter((m) => m && (m.text || m.content))
+    .slice(-10)
+    .reverse();
+
+  for (const msg of recentMsgs) {
+    const text = (msg.text || msg.content || "").toLowerCase();
+
+    const isoMatch = text.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+    if (isoMatch) {
+      activeDate = isoMatch[1];
+      activeDateLabel = isoMatch[1] === addDaysStr(todayStr, 1) ? "Tomorrow" : isoMatch[1] === todayStr ? "Today" : isoMatch[1];
+      break;
+    }
+
+    if (/\btomorrows?\b|\btomorrow's\b|\btomorros\b|\btomowrow\b/i.test(text)) {
+      activeDate = addDaysStr(todayStr, 1);
+      activeDateLabel = "Tomorrow";
+      break;
+    }
+
+    if (/\byesterdays?\b|\byesterday's\b/i.test(text)) {
+      activeDate = addDaysStr(todayStr, -1);
+      activeDateLabel = "Yesterday";
+      break;
+    }
+
+    if (/\btodays?\b|\btoday's\b|\btonight\b/i.test(text)) {
+      activeDate = todayStr;
+      activeDateLabel = "Today";
+      break;
+    }
+  }
+
+  return {
+    currentDate: todayStr,
+    activeDate,
+    activeDateLabel,
+    activeIntent,
+    recentTopic,
+  };
+}
 
 /**
  * Universal Command Parser Entrypoint
  */
-export const parseUniversalCommand = (input = "", contextData = {}) => {
+export const parseUniversalCommand = (input = "", contextData = {}, chatHistory = []) => {
   const trimmed = input.trim();
   if (!trimmed) return [];
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const convContext = resolveSamConversationContext(chatHistory, todayStr);
 
   const clauses = splitMultiCommands(trimmed);
   const results = [];
 
   for (const clause of clauses) {
-    const parsed = parseSingleCommand(clause, contextData);
+    const parsed = parseSingleCommand(clause, contextData, convContext);
     if (parsed) {
       results.push(parsed);
     }

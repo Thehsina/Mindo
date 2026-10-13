@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { registerUser, loginUser } from "../auth";
-import { LogIn, UserPlus, Sparkles, Layout } from "lucide-react";
+import { LogIn, UserPlus, Layout } from "lucide-react";
 
 export default function Login({ setUser }) {
   const [email, setEmail] = useState("");
@@ -50,7 +50,7 @@ export default function Login({ setUser }) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {error && (
             <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-sm font-medium flex items-center gap-2">
-              <Sparkles className="w-4 h-4 shrink-0" />
+              <LogIn className="w-4 h-4 shrink-0" />
               {error}
             </div>
           )}

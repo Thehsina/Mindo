@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { X, Play, Pause, RotateCcw, CheckCircle2, Timer, Sparkles } from "lucide-react";
+import { X, Play, Pause, RotateCcw, CheckCircle2, Timer } from "lucide-react";
 
 const DEFAULT_DURATIONS = [15, 25, 50];
 
@@ -145,7 +145,7 @@ export default function FocusModeModal({ task, onClose, subtasks = [], onComplet
 
           {sessionFinished && (
             <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               <span>Session complete. Great work.</span>
             </div>
           )}

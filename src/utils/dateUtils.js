@@ -128,3 +128,173 @@ export const formatDue = (dueDateVal, hasTimeFlag) => {
   const timeLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return `${dateLabel} ${timeLabel}`;
 };
+
+/**
+ * Robust Calendar Date Comparison Helper.
+ * Determines if a task's stored dueDate matches a target YYYY-MM-DD string.
+ * Handles date-only strings, ISO strings, local timestamp parsing, and UTC conversions.
+ */
+export const isSameCalendarDate = (dueDateVal, targetDateStr) => {
+  if (!dueDateVal || !targetDateStr) return false;
+  const raw = String(dueDateVal).trim();
+  if (!raw) return false;
+
+  const targetClean = String(targetDateStr).trim().slice(0, 10);
+
+  // 1. Direct prefix match (e.g. "2026-10-09", "2026-10-09T04:00", "2026-10-09 04:00")
+  if (raw.startsWith(targetClean)) return true;
+
+  // 2. Parse using local date conversion via parseTaskDate
+  const parsed = parseTaskDate(raw);
+  if (parsed.dateEnabled && parsed.dateStr === targetClean) return true;
+
+  // 3. Fallback local Date object comparison
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime())) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    if (`${year}-${month}-${day}` === targetClean) return true;
+  }
+
+  return false;
+};
+
+/**
+ * Returns formatted 12-hour time string (e.g., "4:00 AM") if task has a time set.
+ */
+export const formatTaskTime = (dueDateVal) => {
+  if (!dueDateVal) return "";
+  const parsed = parseTaskDate(dueDateVal);
+  if (parsed.timeEnabled && parsed.timeStr) {
+    const [hStr, mStr] = parsed.timeStr.split(":");
+    const hours = parseInt(hStr, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const h12 = hours % 12 || 12;
+    return `${h12}:${mStr} ${ampm}`;
+  }
+  return "";
+};
+
+export const getStartOfWeek = (dateInput = new Date()) => {
+  let date;
+  if (typeof dateInput === "string") {
+    const clean = dateInput.trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+      const [y, m, d] = clean.split("-").map(Number);
+      date = new Date(y, m - 1, d);
+    } else {
+      date = new Date(dateInput);
+    }
+  } else {
+    date = new Date(dateInput);
+  }
+
+  if (Number.isNaN(date.getTime())) date = new Date();
+
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  const mon = new Date(date.getFullYear(), date.getMonth(), diff);
+  const year = mon.getFullYear();
+  const month = String(mon.getMonth() + 1).padStart(2, "0");
+  const dayStr = String(mon.getDate()).padStart(2, "0");
+  return `${year}-${month}-${dayStr}`;
+};
+
+const DAYS_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+export const getWeekdayName = (dateInput = new Date()) => {
+  let date;
+  if (typeof dateInput === "string") {
+    const clean = dateInput.trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+      const [y, m, d] = clean.split("-").map(Number);
+      date = new Date(y, m - 1, d);
+    } else {
+      date = new Date(dateInput);
+    }
+  } else {
+    date = new Date(dateInput);
+  }
+
+  if (Number.isNaN(date.getTime())) return "Monday";
+  return DAYS_FULL[date.getDay()];
+};
+
+/**
+ * Formats a Date object or date input as YYYY-MM-DD in the user's local timezone.
+ * Avoids any UTC offset shifts (unlike .toISOString()).
+ */
+export const formatLocalDate = (dateInput = new Date()) => {
+  if (!dateInput) return "";
+  if (typeof dateInput === "string") {
+    const clean = dateInput.trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  }
+  const d = new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Returns 7 local Date objects for a given week offset (Monday through Sunday).
+ * Uses local noon (12:00:00) to avoid any Daylight Saving Time transitions or UTC rollover.
+ */
+export const getWeekDates = (weekOffset = 0, referenceDate = new Date()) => {
+  const ref = new Date(referenceDate);
+  const day = ref.getDay(); // 0 is Sunday, 1 is Monday...
+  const diffToMonday = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(
+    ref.getFullYear(),
+    ref.getMonth(),
+    ref.getDate() + diffToMonday + weekOffset * 7,
+    12,
+    0,
+    0,
+    0
+  );
+
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(
+      monday.getFullYear(),
+      monday.getMonth(),
+      monday.getDate() + i,
+      12,
+      0,
+      0,
+      0
+    );
+    dates.push(d);
+  }
+  return dates;
+};
+
+/**
+ * Formats a week range string (e.g. "This Week · Oct 12–18", "Last Week · Oct 5–11", "Next Week · Oct 19–25")
+ */
+export const formatWeekRangeString = (dates, weekOffset = 0) => {
+  if (!dates || dates.length < 7) return "";
+  const start = dates[0];
+  const end = dates[6];
+
+  const startMonth = start.toLocaleDateString(undefined, { month: "short" });
+  const endMonth = end.toLocaleDateString(undefined, { month: "short" });
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+
+  const rangeStr =
+    startMonth === endMonth
+      ? `${startMonth} ${startDay}–${endDay}`
+      : `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
+
+  if (weekOffset === 0) return `This Week · ${rangeStr}`;
+  if (weekOffset === -1) return `Last Week · ${rangeStr}`;
+  if (weekOffset === 1) return `Next Week · ${rangeStr}`;
+  return rangeStr;
+};
+
+

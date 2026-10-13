@@ -1,49 +1,10 @@
-import { useEffect, useState } from "react";
+import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { supabase, isSupabaseConfigured, getCurrentUser } from "../supabase";
+import { useAuth } from "../AuthContext";
 
 export default function ProtectedRoute() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    let active = true;
-
-    const checkAuth = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        if (active) {
-          setUser(currentUser);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("Auth check error in ProtectedRoute:", err);
-        if (active) {
-          setUser(null);
-          setLoading(false);
-        }
-      }
-    };
-
-    checkAuth();
-
-    let subscription = null;
-    if (isSupabaseConfigured && supabase) {
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (active) {
-          setUser(session?.user ?? null);
-          setLoading(false);
-        }
-      });
-      subscription = data?.subscription;
-    }
-
-    return () => {
-      active = false;
-      if (subscription) subscription.unsubscribe();
-    };
-  }, []);
 
   if (loading) {
     return (
@@ -57,7 +18,7 @@ export default function ProtectedRoute() {
   }
 
   if (!user) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <Outlet />;

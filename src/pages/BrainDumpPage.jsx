@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Sparkles, Check, Trash2, Plus, ArrowRight, AlertCircle } from "lucide-react";
+import { MessageSquareText, Check, Trash2, Plus, ArrowRight, AlertCircle } from "lucide-react";
 import { addTaskFirestore, fetchTasksFirestore } from "../redux/tasksSlice";
 import { addItemFirestore, fetchGroceryFirestore } from "../redux/grocerySlice";
 import { parseBrainDump, buildDuplicateKey } from "../utils/brainDump";
@@ -165,7 +165,7 @@ export default function BrainDumpPage() {
           <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">What&apos;s on your mind?</h1>
         </div>
         <div className="hidden sm:flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
-          <Sparkles className="w-4 h-4" />
+          <MessageSquareText className="w-4 h-4" />
           Organize fast
         </div>
       </div>
@@ -188,7 +188,7 @@ export default function BrainDumpPage() {
             disabled={loading || !draft.trim()}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Sparkles className="w-4 h-4" />
+            <MessageSquareText className="w-4 h-4" />
             {loading ? "Organizing..." : "Organize My Thoughts"}
           </button>
         </div>

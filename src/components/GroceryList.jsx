@@ -1,7 +1,23 @@
+// src/components/GroceryList.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchGroceryFirestore, addItemFirestore, deleteItemFirestore, updateItemFirestore } from "../redux/grocerySlice";
-import { Edit2, Trash2, Plus, Search, Check, ShoppingBag, Package, BadgeCheck, X } from "lucide-react";
+import {
+  fetchGroceryFirestore,
+  addItemFirestore,
+  deleteItemFirestore,
+  updateItemFirestore,
+} from "../redux/grocerySlice";
+import {
+  Edit2,
+  Trash2,
+  Plus,
+  Search,
+  Check,
+  ShoppingBag,
+  BadgeCheck,
+  X,
+  ShoppingCart,
+} from "lucide-react";
 
 const defaultBucketLabel = (listType) => (listType === "monthly" ? "This Month" : "This Week");
 
@@ -21,35 +37,61 @@ const getGroupStats = (items = []) => {
 
 function GroceryCard({ group, onClick }) {
   const stats = getGroupStats(group.items);
+  const previewItems = group.items.slice(0, 3);
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 text-left shadow-2xs hover:shadow-md transition-all duration-200 dark:border-slate-800/80 dark:bg-[#121214] hover:border-indigo-400 dark:hover:border-indigo-500/50 cursor-pointer min-h-[140px] w-full max-w-full"
+      className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-3 text-left shadow-2xs hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-xs transition-all duration-200 dark:border-slate-800/80 dark:bg-[#16171a] cursor-pointer w-full max-w-full"
       aria-label={`Open ${group.label} grocery list`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md">
-            {group.listType === "monthly" ? "This Month" : "This Week"}
+      <div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/15 px-1.5 py-0.5 rounded-md">
+              {group.listType === "monthly" ? "Monthly" : "Weekly"}
+            </span>
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate mt-1">
+              {group.label}
+            </h3>
+          </div>
+          <span className="rounded-xl border border-slate-200/60 dark:border-slate-800 bg-slate-50 dark:bg-[#1f2025] p-1.5 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <ShoppingBag className="h-3.5 w-3.5" />
           </span>
-          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate mt-2">{group.label}</h3>
         </div>
-        <span className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] p-2 text-indigo-600 dark:text-indigo-400 shrink-0">
-          <ShoppingBag className="h-5 w-5" />
-        </span>
+
+        {/* Item Preview list */}
+        <div className="mt-2 space-y-0.5">
+          {previewItems.length === 0 ? (
+            <span className="text-[10px] text-slate-400 italic">Empty list</span>
+          ) : (
+            previewItems.map((it) => (
+              <div key={it.id} className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                <span className={`w-1 h-1 rounded-full ${it.completed ? "bg-slate-300 dark:bg-slate-700" : "bg-indigo-500"}`} />
+                <span className={it.completed ? "line-through opacity-60" : ""}>{it.name}</span>
+                {it.quantity && <span className="text-[9px] opacity-70">({it.quantity})</span>}
+              </div>
+            ))
+          )}
+          {group.items.length > 3 && (
+            <span className="text-[9px] font-medium text-slate-400 block pt-0.5">
+              +{group.items.length - 3} more items...
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="mt-4 space-y-2">
-        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
-          <span>{stats.total} items</span>
+      {/* Progress bar */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-1">
+        <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400">
           <span>{stats.completed}/{stats.total} done</span>
+          <span>{stats.percentage}%</span>
         </div>
 
-        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
           <div
-            className={`h-full rounded-full transition-all ${
+            className={`h-full rounded-full transition-all duration-300 ${
               stats.percentage === 100 ? "bg-emerald-500" : stats.percentage >= 50 ? "bg-indigo-500" : "bg-amber-400"
             }`}
             style={{ width: `${stats.percentage}%` }}
@@ -75,37 +117,37 @@ function GroceryItemRow({
 }) {
   if (isEditing) {
     return (
-      <div className="flex flex-col sm:flex-row w-full items-stretch sm:items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-slate-950">
+      <div className="flex flex-col sm:flex-row w-full items-stretch sm:items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-950">
         <input
           type="text"
           value={editName}
           onChange={(event) => onEditNameChange(event.target.value)}
           autoFocus
-          className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-indigo-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 font-medium"
+          className="flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-indigo-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 font-medium"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <input
             type="text"
             value={editQuantity}
             onChange={(event) => onEditQuantityChange(event.target.value)}
             placeholder="Qty"
-            className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-indigo-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 font-medium"
+            className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800 outline-none focus:border-indigo-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 font-medium text-center"
           />
           <button
             type="button"
             onClick={onSaveEdit}
-            className="inline-flex min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 items-center justify-center rounded-xl bg-indigo-600 p-2 text-white transition hover:bg-indigo-700 cursor-pointer"
+            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 p-1.5 text-white hover:bg-indigo-700 cursor-pointer"
             aria-label={`Save ${item.name}`}
           >
-            <Check className="h-4 w-4" />
+            <Check className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={onCancelEdit}
-            className="inline-flex min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 items-center justify-center rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
             aria-label="Cancel edit"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -113,24 +155,24 @@ function GroceryItemRow({
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-3.5 py-2.5 dark:border-slate-800/80 dark:bg-[#1a1a1e]">
+    <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2.5 py-1.5 dark:border-slate-800/80 dark:bg-[#1a1a1e]">
       <div
         onClick={onToggleComplete}
-        className="flex min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 items-center justify-center cursor-pointer shrink-0"
+        className="flex items-center justify-center cursor-pointer shrink-0"
       >
         <input
           type="checkbox"
           checked={Boolean(item.completed)}
           onChange={() => {}}
           aria-label={item.completed ? `Mark ${item.name} as incomplete` : `Mark ${item.name} as complete`}
-          className="h-5 w-5 cursor-pointer accent-indigo-600 shrink-0 rounded"
+          className="h-4 w-4 cursor-pointer accent-indigo-600 shrink-0 rounded"
         />
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span
-            className={`text-sm font-semibold ${
+            className={`text-xs font-semibold ${
               item.completed ? "text-slate-400 line-through dark:text-slate-500" : "text-slate-900 dark:text-white"
             }`}
           >
@@ -138,28 +180,28 @@ function GroceryItemRow({
           </span>
 
           {item.quantity && (
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">({item.quantity})</span>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">({item.quantity})</span>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-0.5 shrink-0">
         <button
           type="button"
           onClick={onStartEdit}
-          className="inline-flex min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 items-center justify-center rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-300 cursor-pointer"
+          className="inline-flex items-center justify-center rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-300 cursor-pointer"
           aria-label={`Edit ${item.name}`}
         >
-          <Edit2 className="h-4 w-4" />
+          <Edit2 className="h-3 w-3" />
         </button>
 
         <button
           type="button"
           onClick={onDelete}
-          className="inline-flex min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 items-center justify-center rounded-xl p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 cursor-pointer"
+          className="inline-flex items-center justify-center rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 cursor-pointer"
           aria-label={`Delete ${item.name}`}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3 w-3" />
         </button>
       </div>
     </div>
@@ -330,24 +372,39 @@ export default function GroceryList() {
   };
 
   return (
-    <div className="flex md:h-full md:min-h-0 flex-col gap-3 sm:gap-4 md:overflow-hidden max-w-full">
-      {/* 1. Toggle & Search Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shrink-0 max-w-full">
-        <div className="flex items-center gap-2 max-w-full">
-          {/* This Week / This Month Toggle */}
-          <div className="flex flex-1 rounded-2xl bg-slate-100 p-1 dark:bg-[#1a1a1e]">
+    <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-2.5 overflow-hidden max-w-full">
+      {/* 1. COMPACT UNIFIED TOP HEADER */}
+      <div className="shrink-0 flex items-center justify-between gap-2 pb-1 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+            <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+              Grocery
+            </h1>
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-none mt-0.5 truncate">
+              Shopping lists & pantry
+            </p>
+          </div>
+        </div>
+
+        {/* Right Header Controls: List Type Toggle & Search */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Weekly / Monthly Pill Toggle */}
+          <div className="flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
             {[
-              { value: "weekly", label: "This Week" },
-              { value: "monthly", label: "This Month" },
+              { value: "weekly", label: "Weekly" },
+              { value: "monthly", label: "Monthly" },
             ].map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setListType(option.value)}
-                className={`flex-1 min-h-[44px] sm:min-h-0 rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   listType === option.value
-                    ? "bg-indigo-600 text-white shadow-xs dark:bg-indigo-500"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white text-slate-900 shadow-2xs dark:bg-[#121214] dark:text-white"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
                 {option.label}
@@ -355,99 +412,99 @@ export default function GroceryList() {
             ))}
           </div>
 
-          <span className="hidden sm:inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] px-3.5 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
-            {listType === "weekly" ? <ShoppingBag className="h-4 w-4 text-indigo-500" /> : <Package className="h-4 w-4 text-indigo-500" />}
-            {listType === "weekly" ? "Weekly List" : "Monthly List"}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#1a1a1e] px-3.5 py-2 w-full sm:max-w-xs">
-          <Search className="h-4 w-4 text-slate-400 shrink-0" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search groceries..."
-            className="w-full border-none bg-transparent text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100"
-          />
+          {/* Search Input */}
+          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] px-2.5 py-1 w-28 sm:w-44 shadow-2xs">
+            <Search className="h-3 w-3 text-slate-400 shrink-0" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search..."
+              className="w-full border-none bg-transparent text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100"
+            />
+          </div>
         </div>
       </div>
 
-      {/* 2. Quick Add Item bar */}
-      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 dark:border-slate-800/80 dark:bg-[#1a1a1e] shrink-0 max-w-full">
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <input
-            type="text"
-            value={newItemName}
-            onChange={(event) => setNewItemName(event.target.value)}
-            placeholder="+ Add grocery item..."
-            onKeyDown={(event) => {
-              if (event.key === "Enter") handleAddCurrentList();
-            }}
-            className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121214] px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
-          />
-          <div className="flex items-center gap-2">
+      {/* 2. MAIN BENTO CONTAINER */}
+      <div className="bento-card !p-2 sm:!p-3 rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] shadow-2xs">
+        {/* Quick Add Bar */}
+        <div className="pb-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+          <div className="flex flex-col sm:flex-row gap-1.5">
             <input
               type="text"
-              value={newItemQuantity}
-              onChange={(event) => setNewItemQuantity(event.target.value)}
-              placeholder="Qty"
-              className="flex-1 sm:w-24 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121214] px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
+              value={newItemName}
+              onChange={(event) => setNewItemName(event.target.value)}
+              placeholder="+ Add grocery item..."
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleAddCurrentList();
+              }}
+              className="flex-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:border-indigo-400"
             />
-            <input
-              type="text"
-              value={bucketLabel}
-              onChange={(event) => setBucketLabel(event.target.value)}
-              placeholder={listType === "monthly" ? "Month label" : "Week label"}
-              className="flex-1 sm:w-36 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#121214] px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
-            />
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={newItemQuantity}
+                onChange={(event) => setNewItemQuantity(event.target.value)}
+                placeholder="Qty"
+                className="w-16 sm:w-20 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-2 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 text-center focus:border-indigo-400"
+              />
+              <input
+                type="text"
+                value={bucketLabel}
+                onChange={(event) => setBucketLabel(event.target.value)}
+                placeholder={listType === "monthly" ? "Category / Month" : "Category / Week"}
+                className="w-28 sm:w-36 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-2.5 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:border-indigo-400"
+              />
+              <button
+                type="button"
+                onClick={handleAddCurrentList}
+                disabled={!newItemName.trim()}
+                className="inline-flex items-center justify-center gap-1 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-500 disabled:opacity-40 shrink-0 cursor-pointer shadow-2xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add</span>
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={handleAddCurrentList}
-            disabled={!newItemName.trim()}
-            className="inline-flex min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50 shrink-0 cursor-pointer shadow-xs"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add item</span>
-          </button>
         </div>
-      </div>
 
-      {/* 3. Categories / Lists Cards Grid */}
-      <div className="md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1 max-w-full">
-        {filteredGroups.length === 0 ? (
-          <div className="flex h-full min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-6 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            <ShoppingBag className="w-8 h-8 text-slate-300 dark:text-slate-700" />
-            <span className="font-semibold">No grocery items found for {listType === "monthly" ? "This Month" : "This Week"}.</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 max-w-full">
-            {filteredGroups.map((group) => (
-              <GroceryCard key={group.key} group={group} onClick={() => openGroup(group)} />
-            ))}
-          </div>
-        )}
+        {/* Categories / Lists Cards Grid */}
+        <div className="flex-1 min-h-0 overflow-y-auto pt-2 pr-0.5 no-scrollbar">
+          {filteredGroups.length === 0 ? (
+            <div className="flex h-full min-h-[160px] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 p-6 text-center text-xs text-slate-400 dark:text-slate-500">
+              <ShoppingBag className="w-6 h-6 text-slate-300 dark:text-slate-700" />
+              <span className="font-semibold">No groceries for {listType === "monthly" ? "This Month" : "This Week"}.</span>
+              <span className="text-[10px]">Type an item name above to create your list.</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-2.5">
+              {filteredGroups.map((group) => (
+                <GroceryCard key={group.key} group={group} onClick={() => openGroup(group)} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal for viewing/editing selected grocery group */}
       {selectedGroup && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-xs sm:p-6 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-xs sm:p-4 animate-fade-in"
           onClick={() => setSelectedGroupKey(null)}
           role="dialog"
           aria-modal="true"
-          aria-labelledby="grocery-modal-title"
         >
           <div
-            className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-[#121214]"
+            className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#121214]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 sm:px-5 py-3.5 dark:border-slate-800">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
               <div>
-                <h2 id="grocery-modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                   {selectedGroup.label}
                 </h2>
-                <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
                   {filteredSelectedItems.length} items · {filteredSelectedItems.filter((item) => item.completed).length} completed
                 </p>
               </div>
@@ -456,15 +513,16 @@ export default function GroceryList() {
                 type="button"
                 onClick={() => setSelectedGroupKey(null)}
                 aria-label="Close"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="max-h-[50vh] overflow-y-auto px-4 sm:px-5 py-4 space-y-2.5">
+            {/* Checklist Items */}
+            <div className="max-h-[50vh] overflow-y-auto px-4 py-3 space-y-1.5 no-scrollbar">
               {filteredSelectedItems.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs sm:text-sm font-medium text-slate-500 dark:border-slate-800 dark:bg-[#1a1a1e] dark:text-slate-400">
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-xs font-medium text-slate-400 dark:border-slate-800 dark:bg-[#16171a]">
                   No items in this list yet.
                 </div>
               ) : (
@@ -491,8 +549,9 @@ export default function GroceryList() {
               )}
             </div>
 
-            <div className="border-t border-slate-200 bg-slate-50 px-4 sm:px-5 py-3.5 dark:border-slate-800 dark:bg-[#1a1a1e] flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            {/* Modal Footer */}
+            <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 dark:border-slate-800 dark:bg-[#16171a] flex items-center justify-between">
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
                 Created {formatDate(selectedGroup.createdAt)}
               </span>
 
@@ -500,10 +559,10 @@ export default function GroceryList() {
                 <button
                   type="button"
                   onClick={clearCompleted}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-[#1f2025] dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
                 >
-                  <BadgeCheck className="h-4 w-4" />
-                  Clear completed
+                  <BadgeCheck className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Clear completed</span>
                 </button>
               )}
             </div>
@@ -514,31 +573,31 @@ export default function GroceryList() {
       {/* Delete Confirmation Modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-[#121214]">
-            <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-rose-100 p-2 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300 shrink-0">
-                <Trash2 className="h-5 w-5" />
+          <div className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-[#121214]">
+            <div className="flex items-start gap-2.5">
+              <div className="rounded-xl bg-rose-100 p-1.5 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 shrink-0">
+                <Trash2 className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete completed groceries?</h3>
-                <p className="mt-1 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete completed groceries?</h3>
+                <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                   This will remove {confirmDelete.count} completed item{confirmDelete.count > 1 ? "s" : ""}.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-4 flex justify-end gap-1.5">
               <button
                 type="button"
                 onClick={() => setConfirmDelete(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmClearCompleted}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 cursor-pointer"
+                className="rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 cursor-pointer shadow-2xs"
               >
                 Delete
               </button>

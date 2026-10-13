@@ -1,33 +1,20 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { fetchTasksFirestore, toggleTaskFirestore, addTaskFirestore } from "../redux/tasksSlice";
-import { addItemFirestore, fetchGroceryFirestore } from "../redux/grocerySlice";
+import { Link } from "react-router-dom";
+import { fetchTasksFirestore, toggleTaskFirestore } from "../redux/tasksSlice";
+import { fetchGroceryFirestore } from "../redux/grocerySlice";
 import { fetchHabitsFirestore, toggleHabitCompletionFirestore } from "../redux/habitsSlice";
 import { fetchMealsFirestore } from "../redux/mealsSlice";
-import { CheckCircle2, Circle, AlertCircle, ListTodo, ArrowRight, Notebook, ShoppingCart, Settings, Sparkles, Send, Check, X, Plus, Flame, Utensils } from "lucide-react";
+import { CheckCircle2, Circle, AlertCircle, ListTodo, ArrowRight, Flame } from "lucide-react";
 import { isSupabaseConfigured, getCurrentUser } from "../supabase";
-import { parseBrainDump, buildDuplicateKey } from "../utils/brainDump";
-import NotificationCenter from "../components/NotificationCenter";
-import UniversalCommandCenter from "../components/UniversalCommandCenter";
+import { formatLocalDate } from "../utils/dateUtils";
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const tasks = useSelector((state) => state.tasks || []);
-  const grocery = useSelector((state) => state.grocery || []);
   const { habits = [], completions = [] } = useSelector((state) => state.habits || {});
-  const meals = useSelector((state) => state.meals || []);
 
   const [user, setUser] = useState(null);
-  const [commandText, setCommandText] = useState("");
-  const [quickTaskText, setQuickTaskText] = useState("");
-  const [commandItems, setCommandItems] = useState([]);
-  const [commandError, setCommandError] = useState("");
-  const [commandSuccess, setCommandSuccess] = useState("");
-  const [aiResponse, setAiResponse] = useState("");
-  const [conversation, setConversation] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -56,10 +43,7 @@ export default function DashboardPage() {
 
   const displayName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || "User";
   const todayLabel = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date());
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const daysList = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const todayDayName = daysList[new Date().getDay()];
+  const todayStr = formatLocalDate(new Date());
 
   const activeHabitsList = (habits || []).filter((h) => h.archived !== true);
 
@@ -90,213 +74,95 @@ export default function DashboardPage() {
     return "Good evening";
   };
 
-  const addConversationMessage = (role, text) => {
-    setConversation((prev) => [...prev, { role, text, timestamp: new Date() }]);
-  };
-
-  const handleCommandSubmit = async (e) => {
-    e.preventDefault();
-    const input = commandText.trim();
-    if (!input || isProcessing) return;
-
-    setIsProcessing(true);
-    setCommandError("");
-    setCommandSuccess("");
-    addConversationMessage("user", input);
-
-    try {
-      const parsed = parseBrainDump(input);
-      setCommandItems(parsed);
-
-      if (!parsed.length) {
-        const msg = "I couldn't detect actionable items. Try writing e.g., 'Buy milk on Tuesday #Groceries'.";
-        setAiResponse(msg);
-        addConversationMessage("assistant", msg);
-        setIsProcessing(false);
-        return;
-      }
-
-      const existingTaskKeys = new Set(tasks.map((t) => buildDuplicateKey(t.title, t.dueDate)));
-      let tasksSaved = 0;
-      let groceriesSaved = 0;
-
-      for (const item of parsed) {
-        const cleanTitle = (item.title || "").trim();
-        if (!cleanTitle) continue;
-
-        if (item.type === "grocery") {
-          await dispatch(addItemFirestore({
-            name: cleanTitle,
-            category: item.category || "Other",
-            quantity: item.quantity || "1",
-            bucketLabel: item.bucketLabel || "",
-            listType: item.listType || "weekly",
-            completed: false,
-          }));
-          groceriesSaved += 1;
-          continue;
-        }
-
-        const taskKey = buildDuplicateKey(cleanTitle, item.dueDate);
-        if (existingTaskKeys.has(taskKey)) continue;
-
-        await dispatch(addTaskFirestore({
-          title: cleanTitle,
-          note: "",
-          dueDate: item.dueDate || null,
-          priority: item.priority || "None",
-          category: item.category || "Reminders",
-          repeat: "Never",
-          organization: "",
-          placesPeople: "",
-          locationType: "none",
-          locationReminder: false,
-          locationName: "",
-          completed: false,
-        }));
-
-        existingTaskKeys.add(taskKey);
-        tasksSaved += 1;
-      }
-
-      const summary = [];
-      if (tasksSaved) summary.push(`${tasksSaved} task${tasksSaved > 1 ? "s" : ""}`);
-      if (groceriesSaved) summary.push(`${groceriesSaved} grocery item${groceriesSaved > 1 ? "s" : ""}`);
-
-      const finalMessage = summary.length ? `Saved ${summary.join(" and ")}.` : "Nothing new was added.";
-      setCommandSuccess(finalMessage);
-      addConversationMessage("assistant", finalMessage);
-      setCommandText("");
-      setCommandItems([]);
-      setAiResponse("");
-    } catch (error) {
-      console.error("Command save failed:", error);
-      setCommandError("I couldn't save that right now. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleQuickTaskSubmit = async (e) => {
-    e.preventDefault();
-    const text = quickTaskText.trim();
-    if (!text) return;
-
-    await dispatch(
-      addTaskFirestore({
-        title: text,
-        note: "",
-        dueDate: todayStr,
-        priority: "None",
-        category: "Reminders",
-        repeat: "Never",
-        completed: false,
-      })
-    );
-
-    setQuickTaskText("");
-  };
-
   return (
-    <div className="animate-fade-in-up flex flex-col md:h-full md:min-h-0 md:justify-between space-y-2.5 sm:space-y-3.5 md:overflow-hidden pr-0 sm:pr-1 max-w-full overflow-x-hidden">
-      {/* Top Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+    <div className="animate-fade-in-up h-full w-full flex flex-col justify-between gap-2 sm:gap-3 overflow-hidden select-none pr-0 sm:pr-0.5">
+      {/* Top Header Row: Greeting & Date badge on exact same line */}
+      <div className="shrink-0 flex items-center justify-between gap-3 w-full">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
             {getGreeting()}, {displayName.split(' ')[0]}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 font-medium">Here's your productivity overview for today.</p>
+          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+            Here's your productivity overview for today.
+          </p>
         </div>
-        <div className="flex items-center gap-2.5 rounded-full border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-[#121214]/90 px-3.5 py-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm shrink-0">
-          <span className="hidden sm:inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            {todayLabel}
-          </span>
-          <button
-            type="button"
-            onClick={() => navigate("/command-center")}
-            title="Command Center"
-            aria-label="Open Command Center"
-            className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-indigo-50/80 dark:border-indigo-900/40 dark:bg-indigo-950/40 px-3 py-1 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-            <span>Command Center</span>
-          </button>
-          <NotificationCenter />
+        <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-[#121214]/90 px-3 py-1 sm:px-3.5 sm:py-1.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-xs shrink-0 whitespace-nowrap">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <span>• {todayLabel}</span>
         </div>
       </div>
 
-      {/* Bento Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 shrink-0">
-        <div className="bento-card !p-2.5 sm:!p-3.5 bg-indigo-600 dark:bg-indigo-600 border-transparent text-white flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-indigo-100 text-[10px] sm:text-xs font-bold uppercase tracking-wider">Total</span>
-            <div className="p-1.5 bg-white/20 rounded-xl">
-              <ListTodo className="w-4 h-4 text-white" />
+      {/* Bento Stats Row: Compact single horizontal row */}
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
+        <div className="bento-card !p-1.5 sm:!p-2.5 md:!p-3 bg-indigo-600 dark:bg-indigo-600 border-transparent text-white flex flex-col justify-between rounded-xl sm:rounded-2xl md:rounded-3xl min-w-0">
+          <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+            <span className="text-indigo-100 text-[8px] sm:text-[10px] md:text-xs font-extrabold uppercase tracking-wider truncate">Total</span>
+            <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg sm:rounded-xl bg-white/20 shrink-0">
+              <ListTodo className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
             </div>
           </div>
-          <span className="text-xl sm:text-3xl font-black">{total}</span>
+          <span className="text-sm sm:text-xl md:text-2xl font-black leading-none">{total}</span>
         </div>
 
-        <div className="bento-card !p-2.5 sm:!p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider">Done</span>
-            <div className="p-1.5 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <div className="bento-card !p-1.5 sm:!p-2.5 md:!p-3 flex flex-col justify-between rounded-xl sm:rounded-2xl md:rounded-3xl min-w-0">
+          <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+            <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-[10px] md:text-xs font-extrabold uppercase tracking-wider truncate">Done</span>
+            <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
           </div>
-          <span className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white">{completed}</span>
+          <span className="text-sm sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-none">{completed}</span>
         </div>
 
-        <div className="bento-card !p-2.5 sm:!p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider">Active</span>
-            <div className="p-1.5 bg-blue-100 dark:bg-blue-500/20 rounded-xl">
-              <Circle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <div className="bento-card !p-1.5 sm:!p-2.5 md:!p-3 flex flex-col justify-between rounded-xl sm:rounded-2xl md:rounded-3xl min-w-0">
+          <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+            <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-[10px] md:text-xs font-extrabold uppercase tracking-wider truncate">Active</span>
+            <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg sm:rounded-xl bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 shrink-0">
+              <Circle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
           </div>
-          <span className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white">{active}</span>
+          <span className="text-sm sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-none">{active}</span>
         </div>
 
-        <div className="bento-card !p-2.5 sm:!p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider">High</span>
-            <div className="p-1.5 bg-rose-100 dark:bg-rose-500/20 rounded-xl">
-              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+        <div className="bento-card !p-1.5 sm:!p-2.5 md:!p-3 flex flex-col justify-between rounded-xl sm:rounded-2xl md:rounded-3xl min-w-0">
+          <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+            <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-[10px] md:text-xs font-extrabold uppercase tracking-wider truncate">High</span>
+            <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg sm:rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 shrink-0">
+              <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
           </div>
-          <span className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white">{highPriority}</span>
+          <span className="text-sm sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-none">{highPriority}</span>
         </div>
 
-        <div className="bento-card !p-2.5 sm:!p-3.5 flex flex-col justify-between col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider">Overdue</span>
-            <div className="p-1.5 bg-orange-100 dark:bg-orange-500/20 rounded-xl">
-              <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+        <div className="bento-card !p-1.5 sm:!p-2.5 md:!p-3 flex flex-col justify-between rounded-xl sm:rounded-2xl md:rounded-3xl min-w-0">
+          <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+            <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-[10px] md:text-xs font-extrabold uppercase tracking-wider truncate">Overdue</span>
+            <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg sm:rounded-xl bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 shrink-0">
+              <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
           </div>
-          <span className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white">{overdue}</span>
+          <span className="text-sm sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-none">{overdue}</span>
         </div>
       </div>
 
-      {/* Main Tasks Grid: Today's Tasks & Priority Tasks */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 shrink-0">
+      {/* Main Tasks Grid: Dynamically stretches to fill remaining height, internally scrollable */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0 overflow-hidden">
         {/* Today's Tasks Column */}
-        <div className="bento-card !p-3 flex flex-col">
-          <div className="flex items-center justify-between mb-2 shrink-0">
-            <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+        <div className="bento-card !p-2.5 sm:!p-3 flex flex-col h-full min-h-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 shrink-0">
+            <h2 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               Today’s Tasks
               <span className="text-xs font-semibold text-slate-400 ml-1">({todayTasks.length})</span>
             </h2>
             <Link to="/tasks" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline">
-              View all <ArrowRight className="w-3.5 h-3.5" />
+              View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 
-          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+          <div className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
             {todayTasks.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] p-3 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <div className="h-full flex items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] p-3 text-center text-xs text-slate-500 dark:text-slate-400">
                 All caught up for today!
               </div>
             ) : (
@@ -306,7 +172,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => dispatch(toggleTaskFirestore(task))}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition cursor-pointer"
+                      className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full transition cursor-pointer"
                       aria-label="Toggle complete"
                     >
                       {task.completed ? (
@@ -329,21 +195,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Priority Tasks Column */}
-        <div className="bento-card !p-3 flex flex-col">
-          <div className="flex items-center justify-between mb-2 shrink-0">
-            <h2 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />
+        <div className="bento-card !p-2.5 sm:!p-3 flex flex-col h-full min-h-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 shrink-0">
+            <h2 className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
               Priority Tasks
               <span className="text-xs font-semibold text-slate-400 ml-1">({highPriorityActive.length})</span>
             </h2>
             <Link to="/tasks" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline">
-              View all <ArrowRight className="w-3.5 h-3.5" />
+              View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 
-          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+          <div className="space-y-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
             {highPriorityActive.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] p-3 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <div className="h-full flex items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] p-3 text-center text-xs text-slate-500 dark:text-slate-400">
                 No high priority tasks!
               </div>
             ) : (
@@ -353,7 +219,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => dispatch(toggleTaskFirestore(task))}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition cursor-pointer"
+                      className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full transition cursor-pointer"
                       aria-label="Toggle complete"
                     >
                       {task.completed ? (
@@ -376,75 +242,43 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Secondary Row: Today's Habits Overview & Quick Navigation Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 shrink-0">
-        {/* Today's Habits Overview */}
-        <div className="bento-card !p-2.5 sm:!p-3 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
-              <Flame className="w-3 h-3 text-amber-500" /> TODAY'S HABITS
-            </span>
-            <Link to="/habits" className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline">
-              View &rarr;
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {activeHabitsList.length === 0 ? (
-              <span className="text-[10px] text-slate-400 block italic col-span-2">No active habits</span>
-            ) : (
-              activeHabitsList.slice(0, 4).map((h) => {
-                const isDone = (completions || []).some(
-                  (c) => c.habitId === h.id && c.date === todayStr && c.completed
-                );
-                return (
-                  <div
-                    key={h.id}
-                    onClick={() => dispatch(toggleHabitCompletionFirestore(h.id, todayStr))}
-                    className="flex items-center gap-1.5 cursor-pointer text-[11px] truncate hover:text-indigo-600 transition"
-                  >
-                    <span className={isDone ? "text-emerald-500 font-bold" : "text-slate-400"}>
-                      {isDone ? "✓" : "○"}
-                    </span>
-                    <span className={`truncate ${isDone ? "line-through text-slate-400" : "text-slate-800 dark:text-slate-200"}`}>
-                      {h.name}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
+      {/* Today's Habits Overview */}
+      <div className="bento-card !p-2.5 sm:!p-3 shrink-0 flex flex-col">
+        <div className="flex items-center justify-between mb-1.5 shrink-0">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+            <Flame className="w-4 h-4 text-amber-500" /> Today's Habits
+          </span>
+          <Link to="/habits" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+            View all <ArrowRight className="w-3 h-3" />
+          </Link>
         </div>
-
-        {/* Quick Navigation Bar */}
-        <div className="bento-card !p-2 sm:!p-2.5 flex flex-col justify-center shrink-0">
-          <div className="grid grid-cols-5 gap-1.5">
-            <Link to="/tasks" className="flex flex-col items-center justify-center gap-1 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 p-2 text-indigo-700 dark:text-indigo-400 hover:opacity-90 transition">
-              <ListTodo className="w-4 h-4" />
-              <span className="text-[9px] sm:text-[10px] font-bold">Tasks</span>
-            </Link>
-            <Link to="/habits" className="flex flex-col items-center justify-center gap-1 rounded-xl bg-amber-50 dark:bg-amber-500/10 p-2 text-amber-700 dark:text-amber-400 hover:opacity-90 transition">
-              <Flame className="w-4 h-4" />
-              <span className="text-[9px] sm:text-[10px] font-bold">Habits</span>
-            </Link>
-            <Link to="/meal-planner" className="flex flex-col items-center justify-center gap-1 rounded-xl bg-purple-50 dark:bg-purple-500/10 p-2 text-purple-700 dark:text-purple-400 hover:opacity-90 transition">
-              <Utensils className="w-4 h-4" />
-              <span className="text-[9px] sm:text-[10px] font-bold font-sans">Meals</span>
-            </Link>
-            <Link to="/grocery" className="flex flex-col items-center justify-center gap-1 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 p-2 text-emerald-700 dark:text-emerald-400 hover:opacity-90 transition">
-              <ShoppingCart className="w-4 h-4" />
-              <span className="text-[9px] sm:text-[10px] font-bold">Grocery</span>
-            </Link>
-            <Link to="/notes" className="flex flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 dark:bg-[#1a1a1e] p-2 text-slate-700 dark:text-slate-400 hover:opacity-90 transition">
-              <Notebook className="w-4 h-4" />
-              <span className="text-[9px] sm:text-[10px] font-bold">Notes</span>
-            </Link>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5 sm:gap-2 text-xs">
+          {activeHabitsList.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-[#1a1a1e] p-2 text-center text-xs text-slate-400 dark:text-slate-500 col-span-2 sm:col-span-3 md:col-span-6">
+              No active habits for today.
+            </div>
+          ) : (
+            activeHabitsList.slice(0, 6).map((h) => {
+              const isDone = (completions || []).some(
+                (c) => c.habitId === h.id && c.date === todayStr && c.completed
+              );
+              return (
+                <div
+                  key={h.id}
+                  onClick={() => dispatch(toggleHabitCompletionFirestore(h.id, todayStr))}
+                  className="flex items-center gap-2 cursor-pointer p-1.5 sm:p-2 rounded-xl border border-slate-200/80 dark:border-slate-800/60 bg-slate-50/80 dark:bg-[#1a1a1e] hover:bg-slate-100/80 dark:hover:bg-[#222226] transition min-w-0"
+                >
+                  <span className={`text-xs ${isDone ? "text-emerald-500 font-bold" : "text-slate-400"}`}>
+                    {isDone ? "✓" : "○"}
+                  </span>
+                  <span className={`truncate text-xs font-semibold ${isDone ? "line-through text-slate-400" : "text-slate-900 dark:text-white"}`}>
+                    {h.name}
+                  </span>
+                </div>
+              );
+            })
+          )}
         </div>
-      </div>
-
-      {/* Downside Input Bar: Universal Command Center */}
-      <div className="shrink-0 max-w-full">
-        <UniversalCommandCenter compact={true} />
       </div>
     </div>
   );

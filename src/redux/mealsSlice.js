@@ -21,12 +21,12 @@ const normalizeMeal = (m = {}) => ({
   name: m.name || "Untitled Meal",
   type: (m.type || "dinner").toLowerCase(),
   day: m.day || "Monday",
-  dateStr: m.dateStr || getStartOfWeek(),
+  dateStr: m.dateStr || m.date_str || "",
   notes: m.notes || "",
   ingredients: Array.isArray(m.ingredients) ? m.ingredients.filter(Boolean) : [],
   favorite: Boolean(m.favorite),
   tags: Array.isArray(m.tags) ? m.tags : [],
-  createdAt: m.createdAt || new Date().toISOString(),
+  createdAt: m.createdAt || m.created_at || new Date().toISOString(),
 });
 
 const mealsSlice = createSlice({
@@ -35,7 +35,19 @@ const mealsSlice = createSlice({
   reducers: {
     setMeals: (state, action) => action.payload.map(normalizeMeal),
     addMeal: (state, action) => {
-      state.push(normalizeMeal(action.payload));
+      const normalized = normalizeMeal(action.payload);
+      const existingIdx = state.findIndex(
+        (m) =>
+          m.id === normalized.id ||
+          (normalized.dateStr &&
+            m.dateStr === normalized.dateStr &&
+            (m.type || "").toLowerCase() === (normalized.type || "").toLowerCase())
+      );
+      if (existingIdx !== -1) {
+        state[existingIdx] = { ...state[existingIdx], ...normalized, id: state[existingIdx].id };
+      } else {
+        state.push(normalized);
+      }
     },
     updateMeal: (state, action) => {
       const idx = state.findIndex((m) => m.id === action.payload.id);
@@ -134,7 +146,7 @@ export const addMealFirestore = (mealData) => async (dispatch, getState) => {
     try {
       const user = await getCurrentUser();
       if (user) {
-        await supabase.from("meals").insert([
+        await supabase.from("meals").upsert([
           {
             id: newMeal.id,
             user_id: user.id,

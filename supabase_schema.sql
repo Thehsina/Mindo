@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   job_title TEXT DEFAULT '',
   organization TEXT DEFAULT '',
   location TEXT DEFAULT '',
+  avatar_url TEXT DEFAULT '',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -229,4 +230,55 @@ ALTER TABLE public.meals ENABLE ROW LEVEL SECURITY;
 -- Create Policies
 CREATE POLICY "Users can manage their own meals" ON public.meals
   FOR ALL USING (auth.uid() = user_id);
+
+-----------------------------------------------------------
+-- 8. Expenses Table
+-----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.expenses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE DEFAULT auth.uid() NOT NULL,
+  type TEXT DEFAULT 'expense',
+  amount NUMERIC DEFAULT 0,
+  currency TEXT DEFAULT 'AED',
+  description TEXT DEFAULT '',
+  category TEXT DEFAULT 'Other',
+  payment_method TEXT DEFAULT 'Bank Transfer',
+  date TEXT DEFAULT '',
+  note TEXT DEFAULT '',
+  receipt_url TEXT DEFAULT NULL,
+  receipt_name TEXT DEFAULT NULL,
+  source TEXT DEFAULT 'manual',
+  ai_extracted BOOLEAN DEFAULT false,
+  ai_confidence NUMERIC DEFAULT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies
+CREATE POLICY "Users can manage their own expenses" ON public.expenses
+  FOR ALL USING (auth.uid() = user_id);
+
+-----------------------------------------------------------
+-- 9. Sam Messages Table (Optional Assistant History)
+-----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.sam_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE DEFAULT auth.uid() NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+  content TEXT NOT NULL,
+  intent_type TEXT DEFAULT 'casual',
+  actions JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.sam_messages ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies
+CREATE POLICY "Users can manage their own sam messages" ON public.sam_messages
+  FOR ALL USING (auth.uid() = user_id);
+
 

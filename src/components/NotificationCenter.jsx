@@ -114,12 +114,12 @@ export default function NotificationCenter() {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-slate-700 dark:bg-[#17181c]/80 dark:text-slate-100 dark:hover:bg-[#1d1f24]"
+        className="relative flex h-8.5 w-8.5 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-2xs transition hover:bg-slate-100 dark:border-slate-700 dark:bg-[#17181c]/80 dark:text-slate-100 dark:hover:bg-[#1d1f24] shrink-0 cursor-pointer"
         aria-label="Notifications"
       >
         {unreadCount > 0 ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 px-1 text-[9px] font-bold text-white shadow-xs">
             {unreadCount}
           </span>
         )}

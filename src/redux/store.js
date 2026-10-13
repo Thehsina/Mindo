@@ -6,6 +6,7 @@ import groceryReducer from "./grocerySlice";
 import habitsReducer from "./habitsSlice";
 import mealsReducer from "./mealsSlice";
 import expensesReducer from "./expensesSlice";
+import profileReducer from "./profileSlice";
 
 export const store = configureStore({
   reducer: {
@@ -15,5 +16,6 @@ export const store = configureStore({
     habits: habitsReducer,
     meals: mealsReducer,
     expenses: expensesReducer,
+    profile: profileReducer,
   },
 });

@@ -1,24 +1,10 @@
+// src/pages/GroceryPage.jsx
 import GroceryList from "../components/GroceryList";
-import { ShoppingCart } from "lucide-react";
 
 export default function GroceryPage() {
   return (
-    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-3 sm:space-y-4 overflow-hidden max-w-full">
-      {/* Header Area */}
-      <div className="shrink-0 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5 leading-none">
-            <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-500" />
-            Grocery
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage your shopping needs.</p>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 min-h-0 flex flex-col bento-card !p-3 sm:!p-4 overflow-hidden max-w-full">
-        <GroceryList />
-      </div>
+    <div className="h-full flex flex-col max-w-7xl mx-auto w-full gap-2 sm:gap-2.5 overflow-hidden select-none">
+      <GroceryList />
     </div>
   );
 }

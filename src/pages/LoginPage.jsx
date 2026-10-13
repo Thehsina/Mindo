@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase, isSupabaseConfigured, getCurrentUser } from "../supabase";
 import { useNavigate, useLocation } from "react-router-dom";
-import { CheckCircle2, Sparkles, LogIn, UserPlus, ArrowRight } from "lucide-react";
+import { CheckCircle2, LogIn, UserPlus, ArrowRight } from "lucide-react";
 import BrandWordmark from "../components/BrandWordmark";
+import { useSplash } from "../SplashContext";
+import { useAuth } from "../AuthContext";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -65,6 +67,8 @@ const friendlyAuthError = (messageOrCode) => {
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { triggerSplashTransition } = useSplash();
+  const { setUser } = useAuth();
   const fromPath = location.state?.from?.pathname || "/dashboard";
 
   const [isLogin, setIsLogin] = useState(true);
@@ -80,19 +84,16 @@ export default function LoginPage() {
 
     const checkExistingSession = async () => {
       if (!isSupabaseConfigured) {
-        const localUser = localStorage.getItem("tm.local_user") || JSON.stringify({
-          id: "local-user",
-          email: "local@example.com",
-          user_metadata: { display_name: "Local User" }
-        });
-        localStorage.setItem("tm.local_user", localUser);
-        if (active) navigate(fromPath, { replace: true });
+        const localUser = localStorage.getItem("tm.local_user");
+        if (localUser && active) {
+          navigate(fromPath || "/dashboard", { replace: true });
+        }
         return;
       }
 
       const currentUser = await getCurrentUser();
       if (active && currentUser) {
-        navigate(fromPath, { replace: true });
+        navigate(fromPath || "/dashboard", { replace: true });
       }
     };
 
@@ -134,7 +135,13 @@ export default function LoginPage() {
         }));
       }
       
-      navigate(fromPath, { replace: true });
+      // Update auth context state immediately
+      if (setUser) {
+        setUser(localUser);
+      }
+
+      // Show splash screen transition after login or sign-in
+      triggerSplashTransition(fromPath || "/dashboard");
       return;
     }
 
@@ -142,6 +149,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      let authUser = null;
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -151,6 +159,7 @@ export default function LoginPage() {
         if (!data?.session) {
           throw new Error("Unable to sign in. Please check your credentials and try again.");
         }
+        authUser = data.session.user;
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
@@ -168,9 +177,15 @@ export default function LoginPage() {
           );
           return;
         }
+        authUser = data.session.user;
       }
 
-      navigate(fromPath, { replace: true });
+      if (authUser && setUser) {
+        setUser(authUser);
+      }
+
+      // Show splash screen transition after login or sign-in
+      triggerSplashTransition(fromPath || "/dashboard");
     } catch (err) {
       setAuthError(friendlyAuthError(err.code || err.message || err.toString()));
     } finally {
@@ -227,7 +242,7 @@ export default function LoginPage() {
           )}
           {authError && (
             <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-sm font-medium flex items-center gap-2">
-              <Sparkles className="w-4 h-4 shrink-0" />
+              <LogIn className="w-4 h-4 shrink-0" />
               {authError}
             </div>
           )}

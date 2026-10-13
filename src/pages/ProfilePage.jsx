@@ -1,244 +1,199 @@
 import { useState, useEffect } from "react";
-import { supabase, isSupabaseConfigured, getCurrentUser } from "../supabase";
-import { User, Mail, Check, AlertCircle } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { User, Mail, Check, AlertCircle, Pencil } from "lucide-react";
+import { fetchUserProfile, saveUserProfile, clearProfileStatus } from "../redux/profileSlice";
+import { getAvatarUrl } from "../utils/avatars";
+import { useAuth } from "../AuthContext";
+import AvatarSelectionModal from "../components/AvatarSelectionModal";
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState({
-    full_name: "",
-    email: "",
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const { user } = useAuth();
+  const profileState = useSelector((state) => state.profile);
+
+  const fallbackName =
+    profileState.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.display_name ||
+    user?.email?.split("@")[0] ||
+    "User";
+
+  const fallbackEmail = profileState.email || user?.email || "";
+
+  const [fullNameInput, setFullNameInput] = useState("");
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [localFeedback, setLocalFeedback] = useState({ success: "", error: "" });
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        if (!isSupabaseConfigured) {
-          const localProfile = localStorage.getItem("tm.profile");
-          const p = localProfile ? JSON.parse(localProfile) : {};
-          const localUser = localStorage.getItem("tm.local_user");
-          const u = localUser ? JSON.parse(localUser) : {};
+    dispatch(fetchUserProfile());
+  }, [dispatch]);
 
-          setProfile({
-            full_name: p.full_name || u.user_metadata?.display_name || "Local User",
-            email: p.email || u.email || "local@example.com",
-          });
-          setLoading(false);
-          return;
-        }
-
-        const user = await getCurrentUser();
-        if (!user) return;
-
-        const isMissingProfileTable = (err) => {
-          const message = String(err?.message || "");
-          return err?.code === "PGRST205" || err?.code === "42P01" || message.includes("Could not find the table") || message.includes("schema cache");
-        };
-
-        try {
-          const { data, error: fetchErr } = await supabase
-            .from("profiles")
-            .select("full_name, email")
-            .eq("id", user.id)
-            .single();
-
-          if (fetchErr && fetchErr.code !== "PGRST116") {
-            if (isMissingProfileTable(fetchErr)) {
-              throw fetchErr;
-            }
-            throw fetchErr;
-          }
-
-          const dbProfile = data || {};
-          setProfile({
-            full_name: dbProfile.full_name || user.user_metadata?.display_name || user.user_metadata?.full_name || "",
-            email: dbProfile.email || user.email || "",
-          });
-        } catch (tableErr) {
-          if (isMissingProfileTable(tableErr)) {
-            const localProfile = localStorage.getItem("tm.profile");
-            const p = localProfile ? JSON.parse(localProfile) : {};
-            setProfile({
-              full_name: p.full_name || user.user_metadata?.display_name || user.user_metadata?.full_name || "",
-              email: p.email || user.email || "",
-            });
-            setError("");
-            return;
-          }
-          throw tableErr;
-        }
-      } catch (err) {
-        console.error("Failed to load profile:", err);
-        setError("Could not load profile details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, []);
-
-  const saveProfile = async () => {
-    setError("");
-    setSaved(false);
-    setSaving(true);
-
-    try {
-      if (!isSupabaseConfigured) {
-        const nextProfile = {
-          full_name: profile.full_name.trim(),
-          email: profile.email.trim(),
-        };
-        localStorage.setItem("tm.profile", JSON.stringify(nextProfile));
-
-        const localUser = localStorage.getItem("tm.local_user");
-        if (localUser) {
-          const u = JSON.parse(localUser);
-          u.user_metadata = {
-            ...u.user_metadata,
-            display_name: nextProfile.full_name,
-            full_name: nextProfile.full_name,
-          };
-          localStorage.setItem("tm.local_user", JSON.stringify(u));
-        }
-
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-        return;
-      }
-
-      const user = await getCurrentUser();
-      if (!user) throw new Error("User session not found.");
-
-      const { error: authErr } = await supabase.auth.updateUser({
-        data: {
-          display_name: profile.full_name.trim(),
-          full_name: profile.full_name.trim(),
-        },
-      });
-      if (authErr) throw authErr;
-
-      const { error: dbErr } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          email: profile.email.trim(),
-          full_name: profile.full_name.trim(),
-          updated_at: new Date().toISOString(),
-        });
-
-      if (dbErr) {
-        const message = String(dbErr?.message || "");
-        if (dbErr.code === "PGRST205" || dbErr.code === "42P01" || message.includes("Could not find the table") || message.includes("schema cache")) {
-          localStorage.setItem(
-            "tm.profile",
-            JSON.stringify({
-              full_name: profile.full_name.trim(),
-              email: profile.email.trim(),
-            })
-          );
-          setSaved(true);
-          setTimeout(() => setSaved(false), 3000);
-          return;
-        }
-        throw dbErr;
-      }
-
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (err) {
-      console.error("Failed to save profile:", err);
-      setError(err.message || "Failed to save profile changes.");
-    } finally {
-      setSaving(false);
+  useEffect(() => {
+    if (profileState.full_name) {
+      setFullNameInput(profileState.full_name);
+    } else if (fallbackName && fallbackName !== "User" && !fullNameInput) {
+      setFullNameInput(fallbackName);
     }
+  }, [profileState.full_name, fallbackName]);
+
+  useEffect(() => {
+    if (profileState.savedSuccess) {
+      setLocalFeedback({ success: "Saved changes successfully!", error: "" });
+      const timer = setTimeout(() => {
+        setLocalFeedback({ success: "", error: "" });
+        dispatch(clearProfileStatus());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+    if (profileState.error) {
+      setLocalFeedback({ success: "", error: profileState.error });
+    }
+  }, [profileState.savedSuccess, profileState.error, dispatch]);
+
+  const handleSaveProfile = async (e) => {
+    e?.preventDefault();
+    setLocalFeedback({ success: "", error: "" });
+    await dispatch(saveUserProfile({ full_name: fullNameInput }));
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-slate-500 dark:text-slate-400 animate-pulse font-medium text-sm">Loading profile...</div>
-    </div>
-  );
+  const handleAvatarSave = async (newAvatarUrl) => {
+    await dispatch(saveUserProfile({ avatar_url: newAvatarUrl }));
+    setIsAvatarModalOpen(false);
+  };
 
-  const initialLetter = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : "U";
+  if (profileState.loading && !profileState.full_name && !profileState.email && !user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-slate-500 dark:text-slate-400 animate-pulse font-medium text-sm">
+          Loading profile...
+        </div>
+      </div>
+    );
+  }
+
+  const avatarSrc = getAvatarUrl(profileState.avatar_url, fullNameInput || fallbackName);
 
   return (
-    <div className="animate-fade-in-up flex flex-col max-w-2xl mx-auto w-full pb-6 space-y-4 max-w-full overflow-x-hidden">
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
-          <User className="w-5 h-5 sm:w-6 sm:h-6" />
+    <div className="animate-fade-in-up flex flex-col max-w-xl mx-auto w-full pb-6 sm:pb-8 space-y-3 sm:space-y-4 max-w-full">
+      {/* Page Title */}
+      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <div className="w-9 h-9 sm:w-11 sm:h-11 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+          <User className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">Profile</h1>
-          <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Your account details and preferences.</p>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">
+            Profile
+          </h1>
+          <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+            Your account details, profile avatar, and preferences.
+          </p>
         </div>
       </div>
 
-      <div className="bento-card !p-4 sm:!p-8">
-        <div className="flex flex-col items-center mb-6 sm:mb-8">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center text-3xl sm:text-4xl font-black shadow-inner">
-            {initialLetter}
+      <div className="bento-card !p-4 sm:!p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800">
+        {/* Profile Avatar Card with WhatsApp-Style Edit Overlay */}
+        <div className="flex flex-col items-center mb-4 sm:mb-6">
+          <div
+            className="relative group cursor-pointer select-none"
+            onClick={() => setIsAvatarModalOpen(true)}
+            title="Click to change profile picture"
+          >
+            {/* Circular Avatar */}
+            <img
+              src={avatarSrc}
+              alt="User profile avatar"
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-md border-2 border-white dark:border-[#15161a] ring-4 ring-indigo-500/20 group-hover:ring-indigo-500/40 group-hover:scale-105 transition-all duration-200"
+            />
+
+            {/* WhatsApp-Style Edit / Pencil Icon Overlay */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsAvatarModalOpen(true);
+              }}
+              className="absolute bottom-0 right-0 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md border-2 border-white dark:border-[#15161a] transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+              title="Edit profile picture"
+              aria-label="Edit profile picture"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-3 text-center">
-            {profile.full_name || "User"}
+
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-2.5 text-center leading-tight">
+            {fullNameInput || fallbackName}
           </h2>
-          <span className="bg-slate-100 dark:bg-[#1a1a1e] text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full text-xs font-semibold mt-1.5">
+          <span className="bg-slate-100 dark:bg-[#1a1a1e] text-slate-500 dark:text-slate-400 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mt-1">
             Active Account
           </span>
         </div>
 
-        {error && (
-          <div className="mb-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+        {/* Feedback Alerts */}
+        {localFeedback.error && (
+          <div className="mb-3.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
-            {error}
+            <span>{localFeedback.error}</span>
           </div>
         )}
 
-        {saved && (
-          <div className="mb-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
+        {localFeedback.success && (
+          <div className="mb-3.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2">
             <Check className="w-4 h-4 shrink-0" />
-            Saved changes successfully!
+            <span>{localFeedback.success}</span>
           </div>
         )}
 
-        <div className="space-y-4 sm:space-y-6">
-          <div className="grid grid-cols-1 gap-4">
+        {/* Profile Form */}
+        <form onSubmit={handleSaveProfile} className="space-y-3.5 sm:space-y-4">
+          <div className="space-y-3 sm:space-y-3.5">
             <div>
-              <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                <User className="w-4 h-4 text-slate-400" /> Full Name
+              <label className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" /> Full Name
               </label>
               <input
-                value={profile.full_name}
-                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                placeholder="John Doe"
-                className="w-full bg-slate-50 dark:bg-[#1a1a1e] border border-slate-200 dark:border-slate-800/60 focus:border-indigo-500 focus:ring-indigo-500/50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-shadow"
+                type="text"
+                value={fullNameInput}
+                onChange={(e) => setFullNameInput(e.target.value)}
+                placeholder="Your Name"
+                className="w-full bg-slate-50 dark:bg-[#1a1a1e] border border-slate-200 dark:border-slate-800/60 focus:border-indigo-500 focus:ring-indigo-500/50 rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-shadow"
               />
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                <Mail className="w-4 h-4 text-slate-400" /> Email Address
+              <label className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" /> Email Address
               </label>
               <input
-                value={profile.email}
+                type="email"
+                value={profileState.email || user?.email || fallbackEmail || ""}
                 disabled
-                className="w-full bg-slate-100 dark:bg-[#121214] border border-slate-200 dark:border-slate-800/60 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none"
+                className="w-full bg-slate-100 dark:bg-[#121214] border border-slate-200 dark:border-slate-800/60 rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none"
               />
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-medium">Email cannot be changed.</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-medium">
+                Email address is managed via your sign-in account.
+              </p>
             </div>
           </div>
 
           <button
-            onClick={saveProfile}
-            disabled={saving}
-            className="w-full min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-indigo-600/20 mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer text-xs sm:text-sm"
+            type="submit"
+            disabled={profileState.saving}
+            className="w-full min-h-[40px] sm:min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 sm:py-3 rounded-xl transition-colors shadow-md shadow-indigo-600/20 mt-1 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer text-xs sm:text-sm"
           >
-            {saving ? "Saving Changes..." : "Save Changes"}
+            {profileState.saving ? "Saving Changes..." : "Save Changes"}
           </button>
-        </div>
+        </form>
       </div>
+
+      {/* Avatar Selection Modal */}
+      <AvatarSelectionModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+        currentAvatar={profileState.avatar_url}
+        userName={fullNameInput || fallbackName}
+        onSave={handleAvatarSave}
+        isSaving={profileState.saving}
+      />
     </div>
   );
 }

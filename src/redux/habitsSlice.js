@@ -2,6 +2,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { supabase, isSupabaseConfigured, getCurrentUser } from "../supabase.js";
 import { addNotification, addReminderRecord, createReminderRecord } from "../utils/notifications.js";
+import { formatLocalDate } from "../utils/dateUtils.js";
 
 const DEFAULT_DEMO_HABITS = [];
 
@@ -22,10 +23,24 @@ const normalizeHabit = (h = {}) => ({
 const normalizeCompletion = (c = {}) => ({
   id: c.id || `comp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   habitId: c.habitId || "",
-  date: c.date || new Date().toISOString().slice(0, 10),
+  date: c.date ? String(c.date).trim().slice(0, 10) : formatLocalDate(new Date()),
   completed: Boolean(c.completed),
   progressValue: c.progressValue ?? 1,
 });
+
+const deduplicateCompletions = (list = []) => {
+  const map = new Map();
+  for (const item of list) {
+    if (!item || !item.habitId || !item.date) continue;
+    const cleanDate = String(item.date).trim().slice(0, 10);
+    const key = `${item.habitId}__${cleanDate}`;
+    // If we haven't seen it yet, or if this one is marked completed
+    if (!map.has(key) || item.completed) {
+      map.set(key, normalizeCompletion({ ...item, date: cleanDate }));
+    }
+  }
+  return Array.from(map.values());
+};
 
 const habitsSlice = createSlice({
   name: "habits",
@@ -36,7 +51,7 @@ const habitsSlice = createSlice({
   reducers: {
     setHabitsState: (state, action) => {
       state.habits = (action.payload.habits || []).map(normalizeHabit);
-      state.completions = (action.payload.completions || []).map(normalizeCompletion);
+      state.completions = deduplicateCompletions(action.payload.completions || []);
     },
     addHabit: (state, action) => {
       state.habits.push(normalizeHabit(action.payload));
@@ -52,24 +67,26 @@ const habitsSlice = createSlice({
       state.completions = state.completions.filter((c) => c.habitId !== action.payload);
     },
     toggleHabitCompletion: (state, action) => {
-      const { habitId, date = new Date().toISOString().slice(0, 10), progressValue } = action.payload;
-      const idx = state.completions.findIndex((c) => c.habitId === habitId && c.date === date);
+      const { habitId, date = formatLocalDate(new Date()), progressValue } = action.payload;
+      const cleanDate = String(date).trim().slice(0, 10);
+      const existingIdx = state.completions.findIndex((c) => c.habitId === habitId && c.date === cleanDate);
 
-      if (idx !== -1) {
+      if (existingIdx !== -1) {
         // Toggle completion
-        if (state.completions[idx].completed) {
-          state.completions.splice(idx, 1);
+        if (state.completions[existingIdx].completed) {
+          // Remove completion completely
+          state.completions = state.completions.filter((c) => !(c.habitId === habitId && c.date === cleanDate));
         } else {
-          state.completions[idx].completed = true;
+          state.completions[existingIdx].completed = true;
           if (progressValue !== undefined) {
-            state.completions[idx].progressValue = progressValue;
+            state.completions[existingIdx].progressValue = progressValue;
           }
         }
       } else {
         state.completions.push(
           normalizeCompletion({
             habitId,
-            date,
+            date: cleanDate,
             completed: true,
             progressValue: progressValue ?? 1,
           })
@@ -77,17 +94,18 @@ const habitsSlice = createSlice({
       }
     },
     setHabitProgress: (state, action) => {
-      const { habitId, date = new Date().toISOString().slice(0, 10), progressValue } = action.payload;
-      const idx = state.completions.findIndex((c) => c.habitId === habitId && c.date === date);
+      const { habitId, date = formatLocalDate(new Date()), progressValue } = action.payload;
+      const cleanDate = String(date).trim().slice(0, 10);
+      const existingIdx = state.completions.findIndex((c) => c.habitId === habitId && c.date === cleanDate);
 
-      if (idx !== -1) {
-        state.completions[idx].progressValue = progressValue;
-        state.completions[idx].completed = progressValue > 0;
+      if (existingIdx !== -1) {
+        state.completions[existingIdx].progressValue = progressValue;
+        state.completions[existingIdx].completed = progressValue > 0;
       } else {
         state.completions.push(
           normalizeCompletion({
             habitId,
-            date,
+            date: cleanDate,
             completed: progressValue > 0,
             progressValue,
           })
@@ -311,7 +329,8 @@ export const deleteHabitFirestore = (habitId) => async (dispatch, getState) => {
 };
 
 export const toggleHabitCompletionFirestore = (habitId, date, progressValue) => async (dispatch, getState) => {
-  dispatch(toggleHabitCompletion({ habitId, date, progressValue }));
+  const cleanDate = date ? String(date).trim().slice(0, 10) : formatLocalDate(new Date());
+  dispatch(toggleHabitCompletion({ habitId, date: cleanDate, progressValue }));
   const state = getState().habits;
   writeLocalHabits(state.habits, state.completions);
 
@@ -319,14 +338,14 @@ export const toggleHabitCompletionFirestore = (habitId, date, progressValue) => 
     try {
       const user = await getCurrentUser();
       if (user) {
-        const comp = state.completions.find((c) => c.habitId === habitId && c.date === date);
+        const comp = state.completions.find((c) => c.habitId === habitId && c.date === cleanDate);
         if (comp && comp.completed) {
           await supabase.from("habit_completions").upsert([
             {
               id: comp.id,
               user_id: user.id,
               habit_id: habitId,
-              date,
+              date: cleanDate,
               completed: true,
               progress_value: comp.progressValue,
             },
@@ -336,7 +355,7 @@ export const toggleHabitCompletionFirestore = (habitId, date, progressValue) => 
             .from("habit_completions")
             .delete()
             .eq("habit_id", habitId)
-            .eq("date", date)
+            .eq("date", cleanDate)
             .eq("user_id", user.id);
         }
       }

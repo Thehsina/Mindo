@@ -58,16 +58,16 @@ function SortableTaskItem({ task, onToggle }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`border border-slate-200 dark:border-slate-800/60 bg-white dark:bg-[#1a1a1e] rounded-2xl p-4 shadow-sm cursor-grab active:cursor-grabbing hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors ${
+      className={`border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#1a1a1e] rounded-xl sm:rounded-2xl p-2.5 sm:p-3 shadow-2xs cursor-grab active:cursor-grabbing hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors ${
         isDragging ? "opacity-50 ring-2 ring-indigo-500 shadow-md" : ""
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <input
           type="checkbox"
           checked={task.completed}
           onChange={() => onToggle(task)}
-          className="w-4 h-4 accent-indigo-600 rounded cursor-pointer shrink-0 mt-1"
+          className="w-4 h-4 accent-indigo-600 rounded cursor-pointer shrink-0 mt-0.5"
           onClick={(e) => e.stopPropagation()}
         />
         <div
@@ -75,16 +75,16 @@ function SortableTaskItem({ task, onToggle }) {
           {...listeners}
           className="flex-1 min-w-0"
         >
-          <h4 className={`font-semibold text-sm ${
+          <h4 className={`font-semibold text-xs sm:text-sm leading-snug ${
             task.completed ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
           }`}>
             {task.title}
           </h4>
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md ${getPriorityStyle(task.priority)}`}>
+          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+            <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md ${getPriorityStyle(task.priority)}`}>
               {task.priority || "None"}
             </span>
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium">
+            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium">
               {task.category || "General"}
             </span>
             {task.dueDate && (
@@ -105,23 +105,23 @@ function TaskColumn({ id, title, tasks, onToggle }) {
   });
 
   return (
-    <div className="flex-1 min-w-[300px] max-w-[400px]">
+    <div className="w-full md:flex-1 md:min-w-[280px] md:max-w-[400px] shrink-0">
       <div
         ref={setNodeRef}
-        className={`bento-card h-full flex flex-col ${
-          isOver ? "ring-2 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10" : "bg-slate-50 dark:bg-[#121214]"
+        className={`bento-card !p-3 sm:!p-4 rounded-2xl h-auto md:h-full flex flex-col border border-slate-200/80 dark:border-slate-800 ${
+          isOver ? "ring-2 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10" : "bg-slate-50/80 dark:bg-[#121214]"
         }`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-            {title}
-            <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <span>{title}</span>
+            <span className="bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
               {tasks.length}
             </span>
           </h3>
         </div>
         
-        <div className="flex-1 space-y-3 overflow-y-auto min-h-[200px] pb-2 pr-1">
+        <div className="space-y-2 md:flex-1 md:space-y-2.5 md:overflow-y-auto md:min-h-[160px] md:pb-2 md:pr-1">
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map((task) => (
               <SortableTaskItem
@@ -132,8 +132,8 @@ function TaskColumn({ id, title, tasks, onToggle }) {
             ))}
           </SortableContext>
           {tasks.length === 0 && (
-            <div className="h-24 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 dark:text-slate-500 text-sm font-medium">
-              Drop tasks here
+            <div className="h-14 sm:h-18 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800/80 rounded-xl text-slate-400 dark:text-slate-500 text-xs font-medium">
+              No tasks
             </div>
           )}
         </div>
@@ -206,14 +206,14 @@ export default function TaskBoard({ tasks: filteredTasks }) {
   const activeTask = activeId ? tasks.find(task => task.id === activeId) : null;
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col min-h-0">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-6 h-full items-start overflow-x-auto pb-4">
+        <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-5 w-full h-full overflow-y-auto md:overflow-x-auto md:overflow-y-hidden pb-4 md:items-start no-scrollbar">
           <TaskColumn
             id="todo-column"
             title="To Do"
