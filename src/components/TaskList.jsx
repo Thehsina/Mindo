@@ -349,12 +349,12 @@ export default function TaskList({ tasks }) {
   };
 
   return (
-    <div className="md:flex-1 flex flex-col md:min-h-0 md:overflow-hidden max-w-full">
+    <div className="lg:flex-1 flex flex-col lg:min-h-0 lg:overflow-hidden max-w-full">
       {/* Header Row with Task List title & Add task button */}
-      <div className="flex items-center justify-between gap-3 mb-2.5 shrink-0">
-        <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
+        <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
           Task List
-          <span className="rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 px-2 py-0.5 text-xs font-bold">
+          <span className="rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 px-2 py-0.5 text-[10px] sm:text-xs font-bold">
             {tasks.length}
           </span>
         </h2>
@@ -362,15 +362,15 @@ export default function TaskList({ tasks }) {
         <button
           type="button"
           onClick={() => openInfo(createEmptyDraft())}
-          className="inline-flex min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-3 py-2 sm:py-1.5 text-xs font-bold text-white shadow-xs transition-colors shrink-0 cursor-pointer"
+          className="inline-flex min-h-[36px] sm:min-h-0 items-center justify-center gap-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold text-white shadow-2xs transition-all active:scale-95 shrink-0 cursor-pointer"
         >
-          <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Add task</span>
         </button>
       </div>
 
       {/* Task list area */}
-      <div className="md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1 space-y-1.5 max-w-full">
+      <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto pr-0 sm:pr-1 space-y-1.5 max-w-full">
         {tasks.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1a1a1e] px-4 py-8 text-center">
             <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">

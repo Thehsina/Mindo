@@ -58,7 +58,7 @@ const MODULE_TAGS = {
   habit: { label: "Habit", icon: Activity, color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800" },
   reminder: { label: "Reminder", icon: Bell, color: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800" },
   note: { label: "Note", icon: FileText, color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800" },
-  task: { label: "Task", icon: CheckSquare, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
+  task: { label: "Task", icon: CheckSquare, color: "bg-[#703ceb]/10 text-[#703ceb] dark:text-[#a782f7] border-[#703ceb]/20 dark:border-[#703ceb]/30" },
   ambiguous: { label: "Clarification Needed", icon: HelpCircle, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800" },
 };
 
@@ -521,7 +521,7 @@ export default function UniversalCommandCenter({ compact = false, onSaveSuccess 
         <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white/90 p-3 sm:p-4 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#121214]/90">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full overflow-hidden bg-blue-600 shadow-xs shrink-0">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full overflow-hidden bg-[#703ceb] shadow-xs shrink-0">
                 <img src={samAvatar} alt="Sam" className="h-full w-full object-cover" />
               </div>
               <div>
@@ -578,20 +578,20 @@ export default function UniversalCommandCenter({ compact = false, onSaveSuccess 
   // Dedicated ChatGPT-Inspired Chat Page View for Sam
   // -------------------------------------------------------------
   return (
-    <div className="flex flex-col h-[100dvh] md:h-full min-h-0 w-full overflow-hidden bg-slate-50/50 dark:bg-[#0a0a0c]">
+    <div className="flex flex-col h-[100dvh] lg:h-full min-h-0 w-full overflow-hidden bg-slate-50/50 dark:bg-[#0a0a0c]">
       {/* Top Header Bar - Fixed at top */}
       <div className="shrink-0 flex items-center justify-between border-b border-slate-200/80 bg-white/95 px-3 sm:px-4 py-2 sm:py-2.5 pt-[max(0.6rem,env(safe-area-inset-top,0.6rem))] backdrop-blur-md dark:border-slate-800/80 dark:bg-[#121214]/95 z-10">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="md:hidden flex h-8 w-8 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/80 shrink-0 cursor-pointer"
+            className="lg:hidden flex h-8 w-8 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/80 shrink-0 cursor-pointer"
             aria-label="Back"
             title="Back"
           >
             <ArrowLeft className="h-4.5 w-4.5" />
           </button>
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full overflow-hidden bg-blue-600 shadow-sm shrink-0">
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full overflow-hidden bg-[#703ceb] shadow-sm shrink-0">
             <img src={samAvatar} alt="Sam" className="h-full w-full object-cover" />
           </div>
           <div className="min-w-0">
@@ -631,7 +631,7 @@ export default function UniversalCommandCenter({ compact = false, onSaveSuccess 
         {/* Empty State Greeting */}
         {!isLoadingHistory && chatHistory.length === 0 && parsedResults.length === 0 && (
           <div className="my-auto flex flex-col items-center justify-center text-center py-12 sm:py-20 space-y-4 animate-fade-in-up">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full overflow-hidden bg-blue-600 shadow-lg shadow-blue-600/25 ring-4 ring-blue-500/20 shrink-0">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full overflow-hidden bg-[#703ceb] shadow-lg shadow-[#703ceb]/25 ring-4 ring-[#703ceb]/20 shrink-0">
               <img src={samAvatar} alt="Sam" className="h-full w-full object-cover" />
             </div>
 
@@ -661,7 +661,7 @@ export default function UniversalCommandCenter({ compact = false, onSaveSuccess 
                 className={`flex w-full ${isUser ? "justify-end" : "justify-start items-start gap-3"}`}
               >
                 {!isUser && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden bg-blue-600 shadow-xs mt-0.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden bg-[#703ceb] shadow-xs mt-0.5">
                     <img src={samAvatar} alt="Sam" className="h-full w-full object-cover" />
                   </div>
                 )}
@@ -689,7 +689,7 @@ export default function UniversalCommandCenter({ compact = false, onSaveSuccess 
         {/* Loading Indicator */}
         {isProcessing && (
           <div className="flex justify-start items-center gap-3 w-full animate-fade-in-up">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden bg-blue-600 shadow-xs">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden bg-[#703ceb] shadow-xs">
               <img src={samAvatar} alt="Sam" className="h-full w-full object-cover" />
             </div>
             <div className="flex items-center gap-2 rounded-2xl bg-white dark:bg-[#121215] border border-slate-200/80 dark:border-slate-800/80 px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -702,7 +702,7 @@ export default function UniversalCommandCenter({ compact = false, onSaveSuccess 
         {/* Parsed Action Item Confirmation Cards */}
         {parsedResults.length > 0 && (
           <div className="flex justify-start items-start gap-3 w-full animate-fade-in-up">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden bg-blue-600 shadow-xs mt-0.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden bg-[#703ceb] shadow-xs mt-0.5">
               <img src={samAvatar} alt="Sam" className="h-full w-full object-cover" />
             </div>
 

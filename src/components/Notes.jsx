@@ -146,16 +146,16 @@ export default function Notes() {
   };
 
   return (
-    <div className="flex flex-col md:min-h-0 md:h-full gap-4">
+    <div className="flex flex-col lg:min-h-0 lg:h-full gap-3 sm:gap-4">
       {/* Create Note Input Box */}
-      <div className="flex flex-col gap-3 shrink-0 bg-slate-50 dark:bg-[#1a1a1e] p-4 rounded-2xl border border-slate-200 dark:border-slate-800/60 transition-colors focus-within:border-indigo-400 dark:focus-within:border-indigo-500/50 shadow-xs">
+      <div className="flex flex-col gap-2.5 sm:gap-3 shrink-0 bg-slate-50 dark:bg-[#1a1a1e] p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800/60 transition-colors focus-within:border-indigo-400 dark:focus-within:border-indigo-500/50 shadow-xs">
         <input
           type="text"
           placeholder="Note title..."
           value={heading}
           onChange={(e) => setHeading(e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, "heading")}
-          className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-0 font-bold text-base sm:text-lg"
+          className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-0 font-bold text-sm sm:text-base"
         />
         <textarea
           placeholder="Take a note... (Ctrl+Enter to save)"
@@ -163,7 +163,7 @@ export default function Notes() {
           onChange={(e) => setDescription(e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, "description")}
           rows={2}
-          className="w-full bg-transparent border-none text-slate-700 dark:text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-0 resize-none text-sm font-medium"
+          className="w-full bg-transparent border-none text-slate-700 dark:text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-0 resize-none text-xs sm:text-sm font-medium"
         />
 
         {attachments.length > 0 && (
@@ -212,15 +212,15 @@ export default function Notes() {
       </div>
 
       {/* Notes Cards Grid - Designed like Grocery Cards */}
-      <div className="md:flex-1 md:min-h-0 md:overflow-y-auto pr-0 sm:pr-1">
+      <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto pr-0 sm:pr-1">
         {notes.length === 0 ? (
           <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-8 text-center text-sm text-slate-500 dark:text-slate-400">
             <Notebook className="w-8 h-8 text-slate-300 dark:text-slate-700" />
-            <p className="text-base font-bold text-slate-800 dark:text-white">No notes yet</p>
+            <p className="text-sm font-bold text-slate-800 dark:text-white">No notes yet</p>
             <p className="text-xs text-slate-500">Create your first note above.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {notes.map((note) => {
               const n = normalizeNote(note);
               const isEditing = editingId === note.id;
@@ -236,7 +236,7 @@ export default function Notes() {
                         value={editHeading}
                         onChange={(e) => setEditHeading(e.target.value)}
                         placeholder="Title..."
-                        className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none font-bold text-base mb-2"
+                        className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none font-bold text-sm sm:text-base mb-2"
                         autoFocus
                       />
                       <textarea
@@ -330,7 +330,7 @@ export default function Notes() {
                     </div>
 
                     {/* Note Content */}
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white truncate mt-2">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate mt-2">
                       {n.heading || "Untitled"}
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-3 leading-relaxed font-medium">

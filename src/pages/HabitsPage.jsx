@@ -283,8 +283,8 @@ export default function HabitsPage() {
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            {/* DESKTOP MATRIX TABLE (MD and up) */}
-            <div className="hidden md:flex flex-1 min-h-0 flex-col overflow-y-auto no-scrollbar">
+            {/* DESKTOP MATRIX TABLE (LG and up) */}
+            <div className="hidden lg:flex flex-1 min-h-0 flex-col overflow-y-auto no-scrollbar">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -429,7 +429,7 @@ export default function HabitsPage() {
             </div>
 
             {/* MOBILE HABIT CARDS VIEW (Fits 100% mobile screen width, NO horizontal table scrolling) */}
-            <div className="block md:hidden flex-1 min-h-0 overflow-y-auto space-y-2 pt-1 no-scrollbar">
+            <div className="block lg:hidden flex-1 min-h-0 overflow-y-auto space-y-2 pt-1 no-scrollbar">
               {activeHabits.map((habit) => {
                 const streak = calculateStreak(habit, completions);
 

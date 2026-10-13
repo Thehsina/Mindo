@@ -34,7 +34,7 @@ export default function Layout() {
   }, [dispatch]);
 
   return (
-    <div className="layout-container h-[100dvh] max-h-[100dvh] flex flex-col md:flex-row overflow-hidden bg-slate-50 dark:bg-[#0d0d0f]">
+    <div className="layout-container h-[100dvh] max-h-[100dvh] flex flex-col lg:flex-row overflow-hidden bg-slate-50 dark:bg-[#0d0d0f]">
       <Sidebar />
       <div className="flex flex-1 flex-col h-full min-h-0 min-w-0 overflow-hidden">
         {!isSam && <MobileHeader />}
@@ -43,8 +43,8 @@ export default function Layout() {
             isSam
               ? "p-0 h-full overflow-hidden"
               : isFixedLayout
-              ? "px-3 py-2 sm:px-6 sm:py-3 md:p-6 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6 overflow-hidden h-full"
-              : "px-3 py-2 sm:px-6 sm:py-3 md:p-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-6 overflow-y-auto"
+              ? "px-3 py-2 sm:px-6 sm:py-3 lg:p-6 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6 overflow-hidden h-full"
+              : "px-3 py-2 sm:px-6 sm:py-3 lg:p-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-6 overflow-y-auto"
           }`}
         >
           <div className={`mx-auto w-full h-full flex flex-col min-h-0 ${isSam ? "max-w-full" : "max-w-7xl"}`}>

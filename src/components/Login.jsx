@@ -2,6 +2,8 @@ import { useState } from "react";
 import { registerUser, loginUser } from "../auth";
 import { LogIn, UserPlus, Layout } from "lucide-react";
 
+import BrandWordmark from "./BrandWordmark";
+
 export default function Login({ setUser }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,10 +36,8 @@ export default function Login({ setUser }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
       <div className="bento-card p-8 lg:p-10 w-full max-w-md animate-fade-in-up shadow-xl border border-slate-200 dark:border-slate-800/60">
-        <div className="flex justify-center mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-            <Layout className="w-6 h-6 text-white" />
-          </div>
+        <div className="flex justify-center items-center w-full mb-6">
+          <BrandWordmark compact showTagline={false} className="w-full flex justify-center items-center" imgClassName="h-auto w-[180px] sm:w-[220px] mx-auto object-contain" />
         </div>
         
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-2">
@@ -82,7 +82,7 @@ export default function Login({ setUser }) {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-md shadow-indigo-600/20 mt-2 flex items-center justify-center gap-2 disabled:opacity-70"
+            className="w-full bg-[#703ceb] hover:bg-[#5f2fd0] text-white font-semibold py-3 rounded-xl transition-colors shadow-md shadow-[#703ceb]/25 mt-2 flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
           >
             {loading ? "Processing..." : isLogin ? <><LogIn className="w-5 h-5"/> Login</> : <><UserPlus className="w-5 h-5"/> Sign Up</>}
           </button>
@@ -90,7 +90,7 @@ export default function Login({ setUser }) {
           <p className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 mt-4">
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <span
-              className="text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline"
+              className="text-[#703ceb] dark:text-[#a782f7] cursor-pointer hover:underline"
               onClick={() => setIsLogin(!isLogin)}
             >
               {isLogin ? "Sign Up" : "Login"}

@@ -594,7 +594,7 @@ export default function MealPlannerPage() {
       {/* 2. MAIN BENTO CONTAINER */}
       <div className="bento-card !p-2 sm:!p-3 rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] shadow-2xs">
         {/* MOBILE 7-DAY SEGMENTED PILLS (Fitted 7-col grid on mobile) */}
-        <div className="grid grid-cols-7 gap-1 pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0 md:hidden">
+        <div className="grid grid-cols-7 gap-1 pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0 lg:hidden">
           {DAYS_OF_WEEK.map((d, idx) => {
             const isSelected = selectedMobileDay === d.full;
             const isToday = d.full === todayDayName && weekOffset === 0;
@@ -625,7 +625,7 @@ export default function MealPlannerPage() {
         </div>
 
         {/* MOBILE SINGLE-DAY VIEW (Compact, scrollable without wasted margins) */}
-        <div className="block md:hidden flex-1 min-h-0 overflow-y-auto space-y-2 pt-2 no-scrollbar">
+        <div className="block lg:hidden flex-1 min-h-0 overflow-y-auto space-y-2 pt-2 no-scrollbar">
           {(() => {
             const dayIndex = DAYS_OF_WEEK.findIndex((d) => d.full === selectedMobileDay);
             const dObj = DAYS_OF_WEEK[dayIndex >= 0 ? dayIndex : 0];
@@ -728,7 +728,7 @@ export default function MealPlannerPage() {
         </div>
 
         {/* DESKTOP WEEKLY PLANNER TABLE (Full height, balanced columns, internal scroll) */}
-        <div className="hidden md:flex flex-1 min-h-0 flex-col overflow-y-auto no-scrollbar">
+        <div className="hidden lg:flex flex-1 min-h-0 flex-col overflow-y-auto no-scrollbar">
           <table className="w-full table-fixed border-collapse">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">

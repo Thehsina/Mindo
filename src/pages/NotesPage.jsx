@@ -3,15 +3,21 @@ import { FileText } from "lucide-react";
 
 export default function NotesPage() {
   return (
-    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-3 sm:space-y-4 overflow-hidden max-w-full">
-      {/* Header Area */}
-      <div className="shrink-0 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5 leading-none">
-            <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-500" />
-            Notes
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Capture your thoughts and ideas.</p>
+    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-2.5 sm:space-y-3 overflow-hidden max-w-full">
+      {/* 1. COMPACT UNIFIED TOP HEADER */}
+      <div className="shrink-0 flex items-center justify-between gap-2 pb-1 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+              Notes
+            </h1>
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-none mt-0.5 truncate">
+              Capture your thoughts and ideas.
+            </p>
+          </div>
         </div>
       </div>
 

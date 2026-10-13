@@ -105,10 +105,10 @@ function TaskColumn({ id, title, tasks, onToggle }) {
   });
 
   return (
-    <div className="w-full md:flex-1 md:min-w-[280px] md:max-w-[400px] shrink-0">
+    <div className="w-full lg:flex-1 lg:min-w-[280px] lg:max-w-[400px] shrink-0">
       <div
         ref={setNodeRef}
-        className={`bento-card !p-3 sm:!p-4 rounded-2xl h-auto md:h-full flex flex-col border border-slate-200/80 dark:border-slate-800 ${
+        className={`bento-card !p-3 sm:!p-4 rounded-2xl h-auto lg:h-full flex flex-col border border-slate-200/80 dark:border-slate-800 ${
           isOver ? "ring-2 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10" : "bg-slate-50/80 dark:bg-[#121214]"
         }`}
       >
@@ -121,7 +121,7 @@ function TaskColumn({ id, title, tasks, onToggle }) {
           </h3>
         </div>
         
-        <div className="space-y-2 md:flex-1 md:space-y-2.5 md:overflow-y-auto md:min-h-[160px] md:pb-2 md:pr-1">
+        <div className="space-y-2 lg:flex-1 lg:space-y-2.5 lg:overflow-y-auto lg:min-h-[160px] lg:pb-2 lg:pr-1">
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map((task) => (
               <SortableTaskItem
@@ -213,7 +213,7 @@ export default function TaskBoard({ tasks: filteredTasks }) {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-5 w-full h-full overflow-y-auto md:overflow-x-auto md:overflow-y-hidden pb-4 md:items-start no-scrollbar">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-5 w-full h-full overflow-y-auto lg:overflow-x-auto lg:overflow-y-hidden pb-4 lg:items-start no-scrollbar">
           <TaskColumn
             id="todo-column"
             title="To Do"

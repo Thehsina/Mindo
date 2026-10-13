@@ -540,7 +540,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* 3. MOBILE VIEW SEGMENTED TOGGLE (Hidden on desktop) */}
-      <div className="flex md:hidden items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+      <div className="flex lg:hidden items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
         <button
           type="button"
           onClick={() => setMobileTab("transactions")}
@@ -568,11 +568,11 @@ export default function ExpensesPage() {
       </div>
 
       {/* 4. MAIN BODY (Side-by-side on desktop, tabbed on mobile) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-2.5 flex-1 min-h-0 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-2.5 flex-1 min-h-0 overflow-hidden">
         {/* LEFT COLUMN: ANALYTICS & BREAKDOWN (Desktop: 5 cols, Mobile: tab 'analytics') */}
         <div
-          className={`md:col-span-5 flex-col gap-2 sm:gap-2.5 min-h-0 overflow-hidden ${
-            mobileTab === "analytics" ? "flex" : "hidden md:flex"
+          className={`lg:col-span-5 flex-col gap-2 sm:gap-2.5 min-h-0 overflow-hidden ${
+            mobileTab === "analytics" ? "flex" : "hidden lg:flex"
           }`}
         >
           {/* Card: Weekly Trend */}
@@ -638,8 +638,8 @@ export default function ExpensesPage() {
 
         {/* RIGHT COLUMN: TRANSACTIONS FEED (Desktop: 7 cols, Mobile: tab 'transactions') */}
         <div
-          className={`md:col-span-7 flex-col min-h-0 overflow-hidden bento-card !p-2.5 sm:!p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] shadow-2xs ${
-            mobileTab === "transactions" ? "flex" : "hidden md:flex"
+          className={`lg:col-span-7 flex-col min-h-0 overflow-hidden bento-card !p-2.5 sm:!p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] shadow-2xs ${
+            mobileTab === "transactions" ? "flex" : "hidden lg:flex"
           }`}
         >
           {/* Top Bar: Title & All/Income/Expense Filter */}

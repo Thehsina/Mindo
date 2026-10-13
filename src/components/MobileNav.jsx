@@ -26,7 +26,7 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-[#121214] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-[#121214] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
       style={{ paddingBottom: "max(0.4rem, env(safe-area-inset-bottom))" }}
     >
       <div

@@ -8,6 +8,36 @@
   
   --animate-fade-in-up: fadeInUp 0.5s ease-out forwards;
   --animate-scale-in: scaleIn 0.3s ease-out forwards;
+
+  /* Minddo 'do' letter brand color mapping for all blue in app (#703ceb) */
+  --color-blue-50: #f7f4fe;
+  --color-blue-100: #eee7fd;
+  --color-blue-200: #ded1fc;
+  --color-blue-300: #c5aefa;
+  --color-blue-400: #a782f7;
+  --color-blue-500: #8c56f2;
+  --color-blue-600: #703ceb;
+  --color-blue-700: #5f2fd0;
+  --color-blue-800: #4e26ab;
+  --color-blue-900: #41218b;
+  --color-blue-950: #27105e;
+
+  /* Primary Brand colors matching Minddo 'do' letters (#703ceb) */
+  --color-indigo-50: #f7f4fe;
+  --color-indigo-100: #eee7fd;
+  --color-indigo-200: #ded1fc;
+  --color-indigo-300: #c5aefa;
+  --color-indigo-400: #a782f7;
+  --color-indigo-500: #8c56f2;
+  --color-indigo-600: #703ceb;
+  --color-indigo-700: #5f2fd0;
+  --color-indigo-800: #4e26ab;
+  --color-indigo-900: #41218b;
+  --color-indigo-950: #27105e;
+
+  --color-minddo: #703ceb;
+  --color-minddo-hover: #5f2fd0;
+  --color-minddo-navy: #0B0F33;
 }
 
 @layer base {
@@ -41,11 +71,11 @@
 @layer components {
   /* Layout classes */
   .layout-container {
-    @apply flex h-[100dvh] max-h-[100dvh] md:h-screen w-full overflow-hidden;
+    @apply flex h-[100dvh] max-h-[100dvh] lg:h-screen w-full overflow-hidden;
   }
   
   .main-content {
-    @apply flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-6 min-h-0;
+    @apply flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-6 min-h-0;
   }
 
   /* Bento Grid Card - The core component of the new design */

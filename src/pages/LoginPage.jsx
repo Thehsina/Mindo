@@ -215,7 +215,7 @@ export default function LoginPage() {
               'Frictionless Brain Dumps',
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3 text-left">
-                <CheckCircle2 className="w-5 h-5 text-indigo-500" />
+                <CheckCircle2 className="w-5 h-5 text-[#703ceb]" />
                 <span className="font-medium text-slate-700 dark:text-slate-300">{feature}</span>
               </div>
             ))}
@@ -224,8 +224,9 @@ export default function LoginPage() {
 
         {/* Right Side: Auth Form */}
         <div className="bento-card mx-auto w-full max-w-md p-8 shadow-2xl shadow-gray-200/50 lg:p-12">
-          <div className="mb-6 flex justify-center md:hidden">
-            <BrandWordmark compact showTagline={false} className="w-4/5 max-w-xs" />
+          {/* Centered Minddo Logo */}
+          <div className="mb-6 flex justify-center items-center w-full">
+            <BrandWordmark compact showTagline={false} className="w-full flex justify-center items-center" imgClassName="h-auto w-[180px] sm:w-[220px] mx-auto object-contain" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-2">
             {isLogin ? "Welcome back" : "Create an account"}
@@ -296,7 +297,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-semibold text-white shadow-md shadow-indigo-600/20 transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#703ceb] hover:bg-[#5f2fd0] py-3 font-semibold text-white shadow-md shadow-[#703ceb]/25 transition-colors disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
             >
               {loading ? (
                 "Please wait..."

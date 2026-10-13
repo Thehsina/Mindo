@@ -26,13 +26,13 @@ export default function MobileHeader() {
       <header className="pointer-events-auto w-full max-w-5xl flex items-center justify-between border border-slate-200/80 bg-white/95 px-3.5 sm:px-4 py-2 sm:py-2.5 backdrop-blur-md dark:border-slate-800/60 dark:bg-[#121214]/95 rounded-2xl shadow-2xs min-h-[48px] sm:min-h-[52px]">
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Mobile Logo Brand */}
-          <div className="md:hidden flex items-center shrink-0">
+          <div className="lg:hidden flex items-center shrink-0">
             <Link to="/dashboard" className="flex items-center" title="Minddo Home">
               <BrandWordmark compact imgClassName="h-7 sm:h-7.5 w-auto object-contain" />
             </Link>
           </div>
           {/* Web/Desktop Title Display */}
-          <div className="hidden md:flex items-center gap-2 min-w-0">
+          <div className="hidden lg:flex items-center gap-2 min-w-0">
             <h2 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200 tracking-tight leading-none truncate">
               {getPageTitle(location.pathname)}
             </h2>

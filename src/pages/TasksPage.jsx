@@ -4,7 +4,7 @@ import TaskList from "../components/TaskList";
 import TaskBoard from "../components/TaskBoard";
 import FilterTask from "../components/FilterTask";
 import { fetchTasksFirestore } from "../redux/tasksSlice";
-import { LayoutList, Kanban, Search, ArrowUpDown } from "lucide-react";
+import { CheckSquare, LayoutList, Kanban, Search, ArrowUpDown } from "lucide-react";
 
 const getTaskDateValue = (task) => {
   if (!task.dueDate) return Number.MAX_SAFE_INTEGER;
@@ -89,11 +89,22 @@ export default function TasksPage() {
     });
 
   return (
-    <div className="animate-fade-in-up flex flex-col md:h-full md:min-h-0 space-y-3 sm:space-y-3.5 overflow-x-hidden max-w-full">
-      {/* 1. Header */}
-      <div className="shrink-0">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">Tasks</h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Everything on your mind, organized.</p>
+    <div className="animate-fade-in-up flex flex-col lg:h-full lg:min-h-0 space-y-2.5 sm:space-y-3 overflow-x-hidden max-w-full">
+      {/* 1. COMPACT UNIFIED TOP HEADER */}
+      <div className="shrink-0 flex items-center justify-between gap-2 pb-1 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+            <CheckSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+              Tasks
+            </h1>
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-none mt-0.5 truncate">
+              Everything on your mind, organized.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* 2. Search and Filter Row */}
@@ -195,13 +206,13 @@ export default function TasksPage() {
       </div>
 
       {/* 3. Task List / Board Content Area */}
-      <div className="md:flex-1 md:min-h-0 flex flex-col md:overflow-hidden max-w-full">
+      <div className="lg:flex-1 lg:min-h-0 flex flex-col lg:overflow-hidden max-w-full">
         {viewMode === "list" ? (
-          <div className="bento-card md:flex-1 md:min-h-0 flex flex-col !p-3 sm:!p-4 md:overflow-hidden max-w-full">
+          <div className="bento-card lg:flex-1 lg:min-h-0 flex flex-col !p-3 sm:!p-4 lg:overflow-hidden max-w-full">
             <TaskList tasks={filteredTasks} />
           </div>
         ) : (
-          <div className="flex-1 min-h-0 w-full overflow-y-auto md:overflow-hidden max-w-full pb-2">
+          <div className="flex-1 min-h-0 w-full overflow-y-auto lg:overflow-hidden max-w-full pb-2">
             <TaskBoard tasks={filteredTasks} />
           </div>
         )}
