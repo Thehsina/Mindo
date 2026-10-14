@@ -126,7 +126,15 @@ export default function NotificationCenter() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-[60] mt-3 w-[min(92vw,22rem)] rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-2xl backdrop-blur-xl dark:border-slate-700 dark:bg-[#111315]/95">
+        <>
+          {/* Backdrop overlay to dismiss dropdown when tapping outside */}
+          <div
+            className="fixed inset-0 z-40 bg-black/15 backdrop-blur-[0.5px] sm:bg-transparent pointer-events-auto"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="fixed left-3 right-3 top-[58px] sm:absolute sm:left-auto sm:right-0 sm:top-full z-50 mt-1 sm:mt-3 w-auto sm:w-[22rem] max-w-md sm:max-w-none mx-auto sm:mx-0 max-h-[calc(100dvh-5.5rem)] overflow-y-auto no-scrollbar rounded-3xl border border-slate-200/90 bg-white/98 p-3.5 shadow-2xl backdrop-blur-2xl dark:border-slate-700 dark:bg-[#111315]/98 pointer-events-auto animate-scale-in">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <BellRing className="h-4 w-4 text-indigo-500" />
@@ -214,6 +222,7 @@ export default function NotificationCenter() {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   );

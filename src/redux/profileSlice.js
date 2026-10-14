@@ -40,7 +40,7 @@ export const fetchUserProfile = createAsyncThunk(
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("full_name, email, avatar_url")
+          .select("*")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -126,15 +126,22 @@ export const saveUserProfile = createAsyncThunk(
 
           // B) Upsert into profiles table
           try {
-            await supabase.from("profiles").upsert({
+            const profilePayload = {
               id: user.id,
               email: user.email || state.email,
               full_name: cleanName,
-              avatar_url: cleanAvatar,
               updated_at: new Date().toISOString(),
-            });
+            };
+            if (cleanAvatar) {
+              profilePayload.avatar_url = cleanAvatar;
+            }
+
+            const { error: upsertErr } = await supabase.from("profiles").upsert(profilePayload);
+            if (upsertErr && (upsertErr.code === "42703" || upsertErr.message?.includes("avatar_url"))) {
+              delete profilePayload.avatar_url;
+              await supabase.from("profiles").upsert(profilePayload);
+            }
           } catch (dbErr) {
-            // If table or column doesn't exist yet, retry without avatar_url or silently handle
             if (!isMissingProfileTable(dbErr)) {
               console.warn("Supabase profiles table upsert warning:", dbErr.message);
             }

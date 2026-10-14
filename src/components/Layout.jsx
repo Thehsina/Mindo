@@ -19,6 +19,7 @@ export default function Layout() {
   const isMealPlanner = location.pathname === "/meal-planner";
   const isGrocery = location.pathname === "/grocery";
   const isHabits = location.pathname === "/habits";
+  const isNotes = location.pathname === "/notes";
   const isFixedLayout =
     isDashboard ||
     isCalendar ||
@@ -27,7 +28,8 @@ export default function Layout() {
     isExpenses ||
     isMealPlanner ||
     isGrocery ||
-    isHabits;
+    isHabits ||
+    isNotes;
 
   useEffect(() => {
     dispatch(fetchUserProfile());

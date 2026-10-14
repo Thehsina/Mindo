@@ -146,7 +146,7 @@ export default function Notes() {
   };
 
   return (
-    <div className="flex flex-col lg:min-h-0 lg:h-full gap-3 sm:gap-4">
+    <div className="flex-1 min-h-0 h-full flex flex-col gap-2.5 sm:gap-3.5 overflow-hidden">
       {/* Create Note Input Box */}
       <div className="flex flex-col gap-2.5 sm:gap-3 shrink-0 bg-slate-50 dark:bg-[#1a1a1e] p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800/60 transition-colors focus-within:border-indigo-400 dark:focus-within:border-indigo-500/50 shadow-xs">
         <input
@@ -167,7 +167,7 @@ export default function Notes() {
         />
 
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+          <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800/60 max-h-24 overflow-y-auto">
             {attachments.map((attachment) => (
               <div key={attachment.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-[#121214] dark:text-slate-200">
                 {attachment.type === "pdf" ? <FileText className="h-4 w-4 text-rose-500" /> : <ImageIcon className="h-4 w-4 text-indigo-500" />}
@@ -212,15 +212,18 @@ export default function Notes() {
       </div>
 
       {/* Notes Cards Grid - Designed like Grocery Cards */}
-      <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto pr-0 sm:pr-1">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto pr-1 sm:pr-1.5 overscroll-y-contain"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {notes.length === 0 ? (
-          <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="flex h-full min-h-[160px] sm:min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-6 sm:p-8 text-center text-sm text-slate-500 dark:text-slate-400">
             <Notebook className="w-8 h-8 text-slate-300 dark:text-slate-700" />
             <p className="text-sm font-bold text-slate-800 dark:text-white">No notes yet</p>
             <p className="text-xs text-slate-500">Create your first note above.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pb-14 sm:pb-6">
             {notes.map((note) => {
               const n = normalizeNote(note);
               const isEditing = editingId === note.id;
@@ -311,17 +314,17 @@ export default function Notes() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md">
                         Note
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => startEdit(note, e)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors cursor-pointer"
                           title="Edit note"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => handleDeleteNote(note.id, e)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer"
                           title="Delete note"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

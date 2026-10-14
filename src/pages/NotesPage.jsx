@@ -3,7 +3,7 @@ import { FileText } from "lucide-react";
 
 export default function NotesPage() {
   return (
-    <div className="animate-fade-in-up flex flex-col h-full min-h-0 space-y-2.5 sm:space-y-3 overflow-hidden max-w-full">
+    <div className="animate-fade-in-up flex flex-col h-full min-h-0 gap-2 sm:gap-2.5 overflow-hidden max-w-full">
       {/* 1. COMPACT UNIFIED TOP HEADER */}
       <div className="shrink-0 flex items-center justify-between gap-2 pb-1 border-b border-slate-200/60 dark:border-slate-800/60">
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">

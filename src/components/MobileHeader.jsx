@@ -22,7 +22,7 @@ export default function MobileHeader() {
   const avatarSrc = getAvatarUrl(profile.avatar_url, profile.full_name || "User");
 
   return (
-    <div className="w-full shrink-0 pt-1.5 sm:pt-2 pb-1 px-3 sm:px-4 flex justify-center sticky top-0 z-40 pointer-events-none">
+    <div className="w-full shrink-0 pt-1.5 sm:pt-2 pb-1 px-3 sm:px-4 flex justify-center sticky top-0 z-50 pointer-events-none">
       <header className="pointer-events-auto w-full max-w-5xl flex items-center justify-between border border-slate-200/80 bg-white/95 px-3.5 sm:px-4 py-2 sm:py-2.5 backdrop-blur-md dark:border-slate-800/60 dark:bg-[#121214]/95 rounded-2xl shadow-2xs min-h-[48px] sm:min-h-[52px]">
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Mobile Logo Brand */}
