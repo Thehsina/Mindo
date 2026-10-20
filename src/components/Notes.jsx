@@ -6,7 +6,7 @@ import {
   deleteNoteFirestore,
   updateNoteFirestore,
 } from "../redux/notesSlice";
-import { Edit2, Trash2, Plus, X, Check, ImageIcon, FileText, Paperclip, Notebook } from "lucide-react";
+import { Edit2, Trash2, Plus, X, Check, ImageIcon, FileText, Paperclip, Notebook, Search } from "lucide-react";
 import { normalizeAttachments, readFileAsDataUrl, getAttachmentLabel } from "../utils/noteAttachments";
 
 function normalizeNote(note) {
@@ -32,8 +32,17 @@ export default function Notes() {
   const [editHeading, setEditHeading] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editAttachments, setEditAttachments] = useState([]);
+  const [search, setSearch] = useState("");
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
+
+  const filteredNotes = (notes || []).filter((note) => {
+    if (!search.trim()) return true;
+    const query = search.toLowerCase();
+    const heading = (note.heading || "").toLowerCase();
+    const description = (note.description || note.text || "").toLowerCase();
+    return heading.includes(query) || description.includes(query);
+  });
 
   useEffect(() => {
     dispatch(fetchNotesFirestore());
@@ -211,20 +220,50 @@ export default function Notes() {
         </div>
       </div>
 
-      {/* Notes Cards Grid - Designed like Grocery Cards */}
-      <div
-        className="flex-1 min-h-0 overflow-y-auto pr-1 sm:pr-1.5 overscroll-y-contain"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
-        {notes.length === 0 ? (
+      {/* Subheader: Notes Counter & Search Bar */}
+      <div className="flex items-center justify-between gap-2 shrink-0 pt-0.5">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+          <span>Notes List</span>
+          <span className="rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 px-2 py-0.5 text-[10px] font-bold">
+            {filteredNotes.length}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-2.5 py-1 w-36 sm:w-52 shadow-2xs">
+          <Search className="h-3 w-3 text-slate-400 shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search notes..."
+            className="w-full border-none bg-transparent text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Notes Cards Grid - Designed like Grocery Cards, fully scrollable */}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 sm:pr-1.5 custom-scrollbar pb-24 sm:pb-12">
+        {filteredNotes.length === 0 ? (
           <div className="flex h-full min-h-[160px] sm:min-h-[200px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 p-6 sm:p-8 text-center text-sm text-slate-500 dark:text-slate-400">
             <Notebook className="w-8 h-8 text-slate-300 dark:text-slate-700" />
-            <p className="text-sm font-bold text-slate-800 dark:text-white">No notes yet</p>
-            <p className="text-xs text-slate-500">Create your first note above.</p>
+            <p className="text-sm font-bold text-slate-800 dark:text-white">
+              {search ? "No matching notes found" : "No notes yet"}
+            </p>
+            <p className="text-xs text-slate-500">
+              {search ? "Try searching for a different keyword." : "Create your first note above."}
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pb-14 sm:pb-6">
-            {notes.map((note) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
+            {filteredNotes.map((note) => {
               const n = normalizeNote(note);
               const isEditing = editingId === note.id;
 
@@ -306,7 +345,7 @@ export default function Notes() {
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note)}
-                  className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 text-left shadow-2xs hover:shadow-md transition-all duration-200 dark:border-slate-800/80 dark:bg-[#121214] hover:border-indigo-400 dark:hover:border-indigo-500/50 cursor-pointer min-h-[160px]"
+                  className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-slate-50/70 hover:bg-white dark:border-slate-800/80 dark:bg-[#16171a] dark:hover:bg-[#1f2025] p-3.5 sm:p-4 text-left shadow-2xs hover:shadow-xs hover:border-indigo-400/80 dark:hover:border-indigo-500/50 transition-all duration-200 cursor-pointer min-h-[160px]"
                 >
                   <div>
                     {/* Top Header Card Info */}

@@ -7,7 +7,7 @@ import { fetchHabitsFirestore, toggleHabitCompletionFirestore } from "../redux/h
 import { fetchMealsFirestore } from "../redux/mealsSlice";
 import { CheckCircle2, Circle, AlertCircle, ListTodo, ArrowRight, Flame } from "lucide-react";
 import { isSupabaseConfigured, getCurrentUser } from "../supabase";
-import { formatLocalDate } from "../utils/dateUtils";
+import { formatLocalDate, parseTaskDate, isSameCalendarDate } from "../utils/dateUtils";
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
@@ -50,22 +50,41 @@ export default function DashboardPage() {
   const total = tasks.length;
   const completed = tasks.filter((t) => t.completed).length;
   const active = tasks.filter((t) => !t.completed).length;
-  const highPriority = tasks.filter((t) => (t.priority || "").toLowerCase() === "high").length;
-  const overdue = tasks.filter((t) => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()).length;
 
-  const todayTasks = tasks
-    .filter((t) => !t.completed)
-    .filter((t) => {
-      if (!t.dueDate) return true;
-      const due = new Date(t.dueDate);
-      const now = new Date();
-      return due.toDateString() === now.toDateString();
-    });
+  const isTaskOverdue = (task) => {
+    if (!task || task.completed || !task.dueDate) return false;
+    const parsed = parseTaskDate(task.dueDate, task.hasTime ?? task.timeEnabled);
+    if (!parsed.dateEnabled || !parsed.dateStr) return false;
+
+    const now = new Date();
+    const currentTodayStr = formatLocalDate(now);
+
+    if (parsed.dateStr < currentTodayStr) {
+      return true;
+    }
+    if (parsed.dateStr === currentTodayStr && parsed.timeEnabled && parsed.timeStr) {
+      const currentHours = String(now.getHours()).padStart(2, "0");
+      const currentMinutes = String(now.getMinutes()).padStart(2, "0");
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+      return parsed.timeStr < currentTimeStr;
+    }
+    return false;
+  };
 
   const highPriorityActive = tasks
     .filter((t) => !t.completed)
     .filter((t) => (t.priority || "").toLowerCase() === "high")
     .sort((a, b) => new Date(a.remindAt || 0) - new Date(b.remindAt || 0));
+
+  const highPriority = highPriorityActive.length;
+  const overdue = tasks.filter(isTaskOverdue).length;
+
+  const todayTasks = tasks
+    .filter((t) => !t.completed)
+    .filter((t) => {
+      if (!t.dueDate) return false;
+      return isSameCalendarDate(t.dueDate, todayStr);
+    });
 
   const getGreeting = () => {
     const hour = new Date().getHours();

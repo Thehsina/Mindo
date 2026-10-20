@@ -50,6 +50,24 @@ export const parseTaskDate = (dueDateVal, hasTimeFlag) => {
     return { dateStr: "", timeStr: "", dateEnabled: false, timeEnabled: false };
   }
 
+  // Handle UTC midnight timestamps (e.g. "2026-10-16T00:00:00.000Z") as date-only when time is not explicitly flagged
+  const isUtcMidnight =
+    (raw.includes("T00:00:00") || raw.includes(" 00:00:00")) &&
+    d.getUTCHours() === 0 &&
+    d.getUTCMinutes() === 0;
+
+  if (isUtcMidnight && (hasTimeFlag === undefined || !hasTimeFlag)) {
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return {
+      dateStr: `${year}-${month}-${day}`,
+      timeStr: "",
+      dateEnabled: true,
+      timeEnabled: false,
+    };
+  }
+
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -82,16 +100,11 @@ export const formatDue = (dueDateVal, hasTimeFlag) => {
   const raw = String(dueDateVal).trim();
   if (!raw) return "";
 
-  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw);
+  const parsed = parseTaskDate(raw, hasTimeFlag);
+  if (!parsed.dateEnabled || !parsed.dateStr) return "";
 
-  let d;
-  if (isDateOnly) {
-    const [y, m, dNum] = raw.split("-").map(Number);
-    d = new Date(y, m - 1, dNum);
-  } else {
-    d = new Date(raw);
-  }
-
+  const [y, m, dNum] = parsed.dateStr.split("-").map(Number);
+  const d = new Date(y, m - 1, dNum);
   if (Number.isNaN(d.getTime())) return "";
 
   const now = new Date();
@@ -112,21 +125,15 @@ export const formatDue = (dueDateVal, hasTimeFlag) => {
           year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
         });
 
-  let showTime = false;
-  if (hasTimeFlag !== undefined) {
-    showTime = Boolean(hasTimeFlag);
-  } else if (!isDateOnly) {
-    const hasTimePattern = raw.includes("T") || raw.includes(" ");
-    const isNotMidnight = d.getHours() !== 0 || d.getMinutes() !== 0;
-    showTime = hasTimePattern && isNotMidnight;
-  }
-
-  if (!showTime) {
+  if (!parsed.timeEnabled || !parsed.timeStr) {
     return dateLabel;
   }
 
-  const timeLabel = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return `${dateLabel} ${timeLabel}`;
+  const [hStr, mStr] = parsed.timeStr.split(":");
+  const hours = parseInt(hStr, 10);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const h12 = hours % 12 || 12;
+  return `${dateLabel} ${h12}:${mStr} ${ampm}`;
 };
 
 /**
