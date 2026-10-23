@@ -413,7 +413,7 @@ Respond ONLY with a valid raw JSON object (no markdown, no code fences):
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: messagesForOpenAI,
-        temperature: 0.2,
+        temperature: 0.0,
         response_format: { type: "json_object" },
       }),
     });
@@ -622,3 +622,40 @@ Respond ONLY with a valid raw JSON object (no markdown, no code fences):
   }
 }
 
+/**
+ * Strict Literal Recipe & Ingredient Data Extractor
+ * Extracts exact literal ingredients without grouping or summarizing into categories.
+ */
+export async function extractRecipeWithOpenAI(recipeText, apiKey = process.env.OPENAI_API_KEY) {
+  const systemPrompt = `You are a literal data extractor. Do NOT summarize or group items into categories. Extract the EXACT literal ingredients mentioned in the text. 
+BAD OUTPUT: 'garlic and aromatics'
+GOOD OUTPUT: '3 cloves garlic'
+Return a JSON object: { ingredients: [{ name, quantity, unit }] }`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: recipeText },
+      ],
+      temperature: 0.0,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[Recipe Extraction Error] OpenAI API error:", response.status, errorText);
+    throw new Error(`OpenAI API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  return JSON.parse(content || '{"ingredients":[]}');
+}

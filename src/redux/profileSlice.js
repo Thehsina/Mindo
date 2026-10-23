@@ -165,6 +165,14 @@ const profileSlice = createSlice({
     full_name: "",
     email: "",
     avatar_url: "",
+    weekly_grocery_budget: (() => {
+      try {
+        const saved = localStorage.getItem("tm.weekly_grocery_budget");
+        return saved ? Number(saved) : 120;
+      } catch (_) {
+        return 120;
+      }
+    })(),
     loading: false,
     saving: false,
     error: null,
@@ -178,6 +186,13 @@ const profileSlice = createSlice({
     },
     setAvatarUrl(state, action) {
       state.avatar_url = action.payload;
+    },
+    setWeeklyGroceryBudget(state, action) {
+      const val = Math.max(0, Number(action.payload) || 0);
+      state.weekly_grocery_budget = val;
+      try {
+        localStorage.setItem("tm.weekly_grocery_budget", String(val));
+      } catch (_) {}
     },
     clearProfileStatus(state) {
       state.savedSuccess = false;
@@ -220,5 +235,5 @@ const profileSlice = createSlice({
   },
 });
 
-export const { setProfile, setAvatarUrl, clearProfileStatus } = profileSlice.actions;
+export const { setProfile, setAvatarUrl, setWeeklyGroceryBudget, clearProfileStatus } = profileSlice.actions;
 export default profileSlice.reducer;

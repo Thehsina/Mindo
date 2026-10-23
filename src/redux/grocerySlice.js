@@ -19,7 +19,13 @@ const grocerySlice = createSlice({
   reducers: {
     setGrocery: (state, action) => action.payload.map(normalizeGroceryItem),
     addItem: (state, action) => {
-      state.push(normalizeGroceryItem(action.payload));
+      const normalized = normalizeGroceryItem(action.payload);
+      const existsIndex = state.findIndex((i) => i.id === normalized.id);
+      if (existsIndex === -1) {
+        state.push(normalized);
+      } else {
+        state[existsIndex] = normalized;
+      }
     },
     deleteItem: (state, action) => state.filter((i) => i.id !== action.payload),
     updateItem: (state, action) => {
@@ -37,6 +43,10 @@ const grocerySlice = createSlice({
 });
 
 export const { setGrocery, addItem, deleteItem, updateItem, replaceItemId } = grocerySlice.actions;
+
+export const addGroceryItem = addItem;
+export const updateGroceryItem = updateItem;
+export const deleteGroceryItem = deleteItem;
 export default grocerySlice.reducer;
 
 export const mapGroceryFromDb = (row = {}) => normalizeGroceryItem({

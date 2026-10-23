@@ -1,12 +1,20 @@
 // src/components/GroceryList.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchGroceryFirestore,
   addItemFirestore,
   deleteItemFirestore,
   updateItemFirestore,
+  addItem,
+  updateItem,
+  deleteItem,
+  addGroceryItem,
+  updateGroceryItem,
+  deleteGroceryItem,
+  mapGroceryFromDb,
 } from "../redux/grocerySlice";
+import { supabase, isSupabaseConfigured } from "../supabase";
 import {
   Edit2,
   Trash2,
@@ -17,7 +25,12 @@ import {
   BadgeCheck,
   X,
   ShoppingCart,
+  Wallet,
+  BarChart3,
 } from "lucide-react";
+import GroceryBudgetCard from "./GroceryBudgetCard";
+import GroceryBudgetModal from "./GroceryBudgetModal";
+import { fetchExpensesFirestore } from "../redux/expensesSlice";
 
 const defaultBucketLabel = (listType) => (listType === "monthly" ? "This Month" : "This Week");
 
@@ -43,21 +56,21 @@ function GroceryCard({ group, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-3 text-left shadow-2xs hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-xs transition-all duration-200 dark:border-slate-800/80 dark:bg-[#16171a] cursor-pointer w-full max-w-full"
+      className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 sm:p-3 text-left shadow-2xs hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-xs transition-all duration-200 dark:border-slate-800/80 dark:bg-[#16171a] cursor-pointer w-full max-w-full"
       aria-label={`Open ${group.label} grocery list`}
     >
       <div>
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-1.5 sm:gap-2">
           <div className="min-w-0 flex-1">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/15 px-1.5 py-0.5 rounded-md">
+            <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/15 px-1.5 py-0.5 rounded-md">
               {group.listType === "monthly" ? "Monthly" : "Weekly"}
             </span>
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate mt-1">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate mt-1 leading-tight">
               {group.label}
             </h3>
           </div>
           <span className="rounded-xl border border-slate-200/60 dark:border-slate-800 bg-slate-50 dark:bg-[#1f2025] p-1.5 text-indigo-600 dark:text-indigo-400 shrink-0">
-            <ShoppingBag className="h-3.5 w-3.5" />
+            <ShoppingBag className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </span>
         </div>
 
@@ -67,15 +80,15 @@ function GroceryCard({ group, onClick }) {
             <span className="text-[10px] text-slate-400 italic">Empty list</span>
           ) : (
             previewItems.map((it) => (
-              <div key={it.id} className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
-                <span className={`w-1 h-1 rounded-full ${it.completed ? "bg-slate-300 dark:bg-slate-700" : "bg-indigo-500"}`} />
-                <span className={it.completed ? "line-through opacity-60" : ""}>{it.name}</span>
-                {it.quantity && <span className="text-[9px] opacity-70">({it.quantity})</span>}
+              <div key={it.id} className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1 min-w-0">
+                <span className={`w-1 h-1 rounded-full ${it.completed ? "bg-slate-300 dark:bg-slate-700" : "bg-indigo-500"} shrink-0`} />
+                <span className={`truncate min-w-0 flex-1 ${it.completed ? "line-through opacity-60" : ""}`}>{it.name}</span>
+                {it.quantity && <span className="text-[9px] opacity-70 shrink-0">({it.quantity})</span>}
               </div>
             ))
           )}
           {group.items.length > 3 && (
-            <span className="text-[9px] font-medium text-slate-400 block pt-0.5">
+            <span className="text-[9px] font-medium text-slate-400 block pt-0.5 truncate">
               +{group.items.length - 3} more items...
             </span>
           )}
@@ -83,8 +96,8 @@ function GroceryCard({ group, onClick }) {
       </div>
 
       {/* Progress bar */}
-      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-1">
-        <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+      <div className="mt-2 pt-1.5 sm:mt-2.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-1">
+        <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-semibold text-slate-500 dark:text-slate-400">
           <span>{stats.completed}/{stats.total} done</span>
           <span>{stats.percentage}%</span>
         </div>
@@ -211,6 +224,9 @@ function GroceryItemRow({
 export default function GroceryList() {
   const dispatch = useDispatch();
   const items = useSelector((state) => state.grocery || []);
+  const weeklyBudget = useSelector((state) => state?.profile?.weekly_grocery_budget || 120);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showMobileChart, setShowMobileChart] = useState(false);
   const [listType, setListType] = useState("weekly");
   const [search, setSearch] = useState("");
   const [selectedGroupKey, setSelectedGroupKey] = useState(null);
@@ -222,8 +238,54 @@ export default function GroceryList() {
   const [editQuantity, setEditQuantity] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
 
+  // Realtime multi-device sync
   useEffect(() => {
+    // 1. Initial data fetch
     dispatch(fetchGroceryFirestore());
+    dispatch(fetchExpensesFirestore());
+
+    if (!isSupabaseConfigured || !supabase) return;
+
+    // 2. Subscribe to INSERT, UPDATE, and DELETE changes on the grocery table
+    const channel = supabase
+      .channel("grocery-realtime-sync")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "grocery" },
+        (payload) => {
+          if (payload?.new) {
+            dispatch(addGroceryItem(mapGroceryFromDb(payload.new)));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "grocery" },
+        (payload) => {
+          if (payload?.new) {
+            dispatch(updateGroceryItem(mapGroceryFromDb(payload.new)));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "grocery" },
+        (payload) => {
+          if (payload?.old?.id) {
+            dispatch(deleteGroceryItem(payload.old.id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          console.warn("[Grocery Realtime] Subscription error on channel.");
+        }
+      });
+
+    // 3. Clean up subscription on unmount to prevent memory leaks
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [dispatch]);
 
   useEffect(() => {
@@ -389,8 +451,20 @@ export default function GroceryList() {
           </div>
         </div>
 
-        {/* Right Header Controls: List Type Toggle & Search */}
+        {/* Right Header Controls: Budget Button, List Type Toggle & Search */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Weekly Grocery Budget Button */}
+          <button
+            type="button"
+            onClick={() => setShowBudgetModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#703ceb]/10 hover:bg-[#703ceb]/20 text-[#703ceb] dark:text-[#9b72f5] border border-[#703ceb]/30 text-xs font-bold transition cursor-pointer shadow-2xs whitespace-nowrap"
+            title="Set weekly grocery budget"
+          >
+            <Wallet className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Budget:</span>
+            <span>{weeklyBudget} AED/wk</span>
+          </button>
+
           {/* Weekly / Monthly Pill Toggle */}
           <div className="flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
             {[
@@ -425,64 +499,96 @@ export default function GroceryList() {
         </div>
       </div>
 
-      {/* 2. MAIN BENTO CONTAINER */}
-      <div className="bento-card !p-2 sm:!p-3 rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] shadow-2xs">
-        {/* Quick Add Bar */}
-        <div className="pb-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
-          <div className="flex flex-col sm:flex-row gap-1.5">
-            <input
-              type="text"
-              value={newItemName}
-              onChange={(event) => setNewItemName(event.target.value)}
-              placeholder="+ Add grocery item..."
-              onKeyDown={(event) => {
-                if (event.key === "Enter") handleAddCurrentList();
-              }}
-              className="flex-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:border-indigo-400"
-            />
-            <div className="flex items-center gap-1.5">
+      {/* 2. MAIN BENTO CONTAINER (Responsive 2-column on desktop, optimized on mobile) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-2.5 flex-1 min-h-0 overflow-hidden">
+        {/* Left: Grocery Lists & Items (Takes 8 cols on desktop) */}
+        <div className="bento-card !p-2 sm:!p-3 rounded-2xl lg:col-span-8 xl:col-span-8 flex flex-col h-full min-h-0 overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121214] shadow-2xs">
+          {/* Quick Add Bar */}
+          <div className="pb-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+            <div className="flex flex-col sm:flex-row gap-1.5">
               <input
                 type="text"
-                value={newItemQuantity}
-                onChange={(event) => setNewItemQuantity(event.target.value)}
-                placeholder="Qty"
-                className="w-16 sm:w-20 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-2 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 text-center focus:border-indigo-400"
+                value={newItemName}
+                onChange={(event) => setNewItemName(event.target.value)}
+                placeholder="+ Add grocery item..."
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleAddCurrentList();
+                }}
+                className="flex-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:border-indigo-400"
               />
-              <input
-                type="text"
-                value={bucketLabel}
-                onChange={(event) => setBucketLabel(event.target.value)}
-                placeholder={listType === "monthly" ? "Category / Month" : "Category / Week"}
-                className="w-28 sm:w-36 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-2.5 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:border-indigo-400"
-              />
-              <button
-                type="button"
-                onClick={handleAddCurrentList}
-                disabled={!newItemName.trim()}
-                className="inline-flex items-center justify-center gap-1 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-500 disabled:opacity-40 shrink-0 cursor-pointer shadow-2xs"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={newItemQuantity}
+                  onChange={(event) => setNewItemQuantity(event.target.value)}
+                  placeholder="Qty"
+                  className="w-16 sm:w-20 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-2 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 text-center focus:border-indigo-400"
+                />
+                <input
+                  type="text"
+                  value={bucketLabel}
+                  onChange={(event) => setBucketLabel(event.target.value)}
+                  placeholder={listType === "monthly" ? "Category / Month" : "Category / Week"}
+                  className="w-28 sm:w-36 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-[#16171a] px-2.5 py-1.5 text-xs font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:border-indigo-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCurrentList}
+                  disabled={!newItemName.trim()}
+                  className="inline-flex items-center justify-center gap-1 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-500 disabled:opacity-40 shrink-0 cursor-pointer shadow-2xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* Categories / Lists Cards Grid */}
+          <div className="flex-1 min-h-0 overflow-y-auto pt-2 pr-0.5 no-scrollbar">
+            {/* Mobile-only Collapsible Grocery Budget Widget */}
+            <div className="lg:hidden pb-2 shrink-0">
+              {showMobileChart ? (
+                <GroceryBudgetCard
+                  onOpenBudgetModal={() => setShowBudgetModal(true)}
+                  onCloseMobile={() => setShowMobileChart(false)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowMobileChart(true)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#16171a] border border-slate-200/80 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700 transition cursor-pointer shadow-2xs"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <BarChart3 className="w-3.5 h-3.5 text-[#703ceb]" />
+                    <span>Spend vs. Budget Trends</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-[#703ceb] dark:text-[#9b72f5]">
+                    Show Chart ▾
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {filteredGroups.length === 0 ? (
+              <div className="flex h-full min-h-[160px] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 p-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                <ShoppingBag className="w-6 h-6 text-slate-300 dark:text-slate-700" />
+                <span className="font-semibold">No groceries for {listType === "monthly" ? "This Month" : "This Week"}.</span>
+                <span className="text-[10px]">Type an item name above to create your list.</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-2.5">
+                {filteredGroups.map((group) => (
+                  <GroceryCard key={group.key} group={group} onClick={() => openGroup(group)} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Categories / Lists Cards Grid */}
-        <div className="flex-1 min-h-0 overflow-y-auto pt-2 pr-0.5 no-scrollbar">
-          {filteredGroups.length === 0 ? (
-            <div className="flex h-full min-h-[160px] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 p-6 text-center text-xs text-slate-400 dark:text-slate-500">
-              <ShoppingBag className="w-6 h-6 text-slate-300 dark:text-slate-700" />
-              <span className="font-semibold">No groceries for {listType === "monthly" ? "This Month" : "This Week"}.</span>
-              <span className="text-[10px]">Type an item name above to create your list.</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-2.5">
-              {filteredGroups.map((group) => (
-                <GroceryCard key={group.key} group={group} onClick={() => openGroup(group)} />
-              ))}
-            </div>
-          )}
+        {/* Right: Grocery Budget & Spend Analytics Chart (Desktop - Compact 4 cols) */}
+        <div className="hidden lg:flex lg:col-span-4 xl:col-span-4 flex-col h-full min-h-0 overflow-hidden">
+          <GroceryBudgetCard onOpenBudgetModal={() => setShowBudgetModal(true)} />
         </div>
       </div>
 
@@ -604,6 +710,10 @@ export default function GroceryList() {
             </div>
           </div>
         </div>
+      )}
+      {/* Weekly Budget Editor Modal */}
+      {showBudgetModal && (
+        <GroceryBudgetModal onClose={() => setShowBudgetModal(false)} />
       )}
     </div>
   );

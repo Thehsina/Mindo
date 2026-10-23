@@ -18,8 +18,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   organization TEXT DEFAULT '',
   location TEXT DEFAULT '',
   avatar_url TEXT DEFAULT '',
+  weekly_grocery_budget NUMERIC DEFAULT 120,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS weekly_grocery_budget NUMERIC DEFAULT 120;
 
 -- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -163,6 +167,26 @@ ALTER TABLE public.grocery ENABLE ROW LEVEL SECURITY;
 -- Create Policies
 CREATE POLICY "Users can manage their own grocery list" ON public.grocery
   FOR ALL USING (auth.uid() = user_id);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_grocery_user_id ON public.grocery(user_id);
+CREATE INDEX IF NOT EXISTS idx_grocery_created_at ON public.grocery(created_at);
+
+-- Enable Realtime publication on grocery table
+ALTER TABLE public.grocery REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables 
+      WHERE pubname = 'supabase_realtime' 
+        AND schemaname = 'public' 
+        AND tablename = 'grocery'
+    ) THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.grocery;
+    END IF;
+  END IF;
+END $$;
 
 -----------------------------------------------------------
 -- 5. Habits Table

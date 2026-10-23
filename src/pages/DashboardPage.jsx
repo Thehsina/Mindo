@@ -5,9 +5,10 @@ import { fetchTasksFirestore, toggleTaskFirestore } from "../redux/tasksSlice";
 import { fetchGroceryFirestore } from "../redux/grocerySlice";
 import { fetchHabitsFirestore, toggleHabitCompletionFirestore } from "../redux/habitsSlice";
 import { fetchMealsFirestore } from "../redux/mealsSlice";
-import { CheckCircle2, Circle, AlertCircle, ListTodo, ArrowRight, Flame } from "lucide-react";
+import { CheckCircle2, Circle, AlertCircle, ListTodo, ArrowRight, Flame, Sparkles } from "lucide-react";
 import { isSupabaseConfigured, getCurrentUser } from "../supabase";
 import { formatLocalDate, parseTaskDate, isSameCalendarDate } from "../utils/dateUtils";
+import WeeklyResetDashboard from "../components/WeeklyResetDashboard";
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   const { habits = [], completions = [] } = useSelector((state) => state.habits || {});
 
   const [user, setUser] = useState(null);
+  const [showWeeklyReset, setShowWeeklyReset] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -94,7 +96,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="animate-fade-in-up h-full w-full flex flex-col justify-between gap-2 sm:gap-3 overflow-hidden select-none pr-0 sm:pr-0.5">
+    <div className="animate-fade-in-up h-full w-full flex flex-col justify-between gap-2 sm:gap-2.5 overflow-hidden select-none pr-0 sm:pr-0.5">
       {/* Top Header Row: Greeting & Date badge on exact same line */}
       <div className="shrink-0 flex items-center justify-between gap-3 w-full">
         <div className="min-w-0">
@@ -105,9 +107,20 @@ export default function DashboardPage() {
             Here's your productivity overview for today.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-[#121214]/90 px-3 py-1 sm:px-3.5 sm:py-1.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-xs shrink-0 whitespace-nowrap">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span>• {todayLabel}</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowWeeklyReset(true)}
+            title="Weekly Reset Review"
+            aria-label="Weekly Reset Review"
+            className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[#703ceb]/40 bg-[#703ceb]/10 hover:bg-[#703ceb]/20 text-[#703ceb] dark:text-[#9b72f5] transition shadow-xs cursor-pointer active:scale-95 shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#703ceb] dark:text-[#9b72f5]" />
+          </button>
+          <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-[#121214]/90 px-3 py-1 sm:px-3.5 sm:py-1.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-xs shrink-0 whitespace-nowrap">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span>• {todayLabel}</span>
+          </div>
         </div>
       </div>
 
@@ -164,8 +177,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Tasks Grid: Dynamically stretches to fill remaining height, internally scrollable */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0 overflow-hidden">
+      {/* Main Tasks Grid: Dynamically stretches to fill available middle height, internally scrollable */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-2.5 flex-1 min-h-0 overflow-hidden">
         {/* Today's Tasks Column */}
         <div className="bento-card !p-2.5 sm:!p-3 flex flex-col h-full min-h-0 overflow-hidden">
           <div className="flex items-center justify-between mb-1.5 shrink-0">
@@ -262,12 +275,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Today's Habits Overview */}
-      <div className="bento-card !p-2.5 sm:!p-3 shrink-0 flex flex-col">
+      <div className="bento-card !p-2 sm:!p-2.5 md:!p-3 shrink-0 flex flex-col rounded-xl sm:rounded-2xl md:rounded-3xl">
         <div className="flex items-center justify-between mb-1.5 shrink-0">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-            <Flame className="w-4 h-4 text-amber-500" /> Today's Habits
+          <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+            <Flame className="w-3.5 h-3.5 text-amber-500" /> Today's Habits
           </span>
-          <Link to="/habits" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+          <Link to="/habits" className="text-[11px] sm:text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
             View all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -285,7 +298,7 @@ export default function DashboardPage() {
                 <div
                   key={h.id}
                   onClick={() => dispatch(toggleHabitCompletionFirestore(h.id, todayStr))}
-                  className="flex items-center gap-2 cursor-pointer p-1.5 sm:p-2 rounded-xl border border-slate-200/80 dark:border-slate-800/60 bg-slate-50/80 dark:bg-[#1a1a1e] hover:bg-slate-100/80 dark:hover:bg-[#222226] transition min-w-0"
+                  className="flex items-center gap-1.5 sm:gap-2 cursor-pointer p-1.5 sm:p-2 rounded-xl border border-slate-200/80 dark:border-slate-800/60 bg-slate-50/80 dark:bg-[#1a1a1e] hover:bg-slate-100/80 dark:hover:bg-[#222226] transition min-w-0"
                 >
                   <span className={`text-xs ${isDone ? "text-emerald-500 font-bold" : "text-slate-400"}`}>
                     {isDone ? "✓" : "○"}
@@ -299,6 +312,11 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Sunday Reset Modal Overlay */}
+      {showWeeklyReset && (
+        <WeeklyResetDashboard onClose={() => setShowWeeklyReset(false)} />
+      )}
     </div>
   );
 }
